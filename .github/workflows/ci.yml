@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  GODOT_VERSION: "4.6.3"
+
+jobs:
+  validate:
+    name: Offline + Godot validation
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      - name: Validate Python tooling
+        run: python -m py_compile tools/verify_offline.py
+
+      - name: Enforce offline contract
+        run: python tools/verify_offline.py
+
+      - name: Install Godot 4.6.3
+        uses: chickensoft-games/setup-godot@v2.4.2
+        with:
+          version: "4.6.3"
+          use-dotnet: false
+          include-templates: false
+
+      - name: Verify Godot version
+        run: godot --version
+
+      - name: Import project and parse resources
+        run: godot --headless --editor --path . --quit
+
+      - name: Run project smoke test
+        env:
+          XDG_DATA_HOME: ${{ runner.temp }}/last-signal-smoke
+        run: godot --headless --path . --script scripts/ci/smoke.gd
+
+      - name: Run gameplay smoke test
+        env:
+          XDG_DATA_HOME: ${{ runner.temp }}/last-signal-gameplay
+        run: godot --headless --path . --script scripts/ci/gameplay_smoke.gd

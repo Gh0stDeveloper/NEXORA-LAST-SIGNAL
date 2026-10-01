@@ -1,0 +1,36 @@
+; Engine configuration file.
+; NEXORA: LAST SIGNAL — offline/local survival prototype
+config_version=5
+
+[application]
+config/name="NEXORA: LAST SIGNAL"
+config/version="0.1.0-alpha.1"
+config/description="100% local offline zombie survival shooter by Ghost Developer / Nexora"
+run/main_scene="res://src/main/Boot.tscn"
+config/features=PackedStringArray("4.6", "Mobile")
+
+[autoload]
+SaveSystem="*res://src/autoload/SaveSystem.gd"
+GameState="*res://src/autoload/GameState.gd"
+
+[display]
+window/size/viewport_width=1920
+window/size/viewport_height=1080
+window/size/window_width_override=1280
+window/size/window_height_override=720
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+window/handheld/orientation=0
+
+[rendering]
+renderer/rendering_method="mobile"
+renderer/rendering_method.mobile="mobile"
+textures/default_filters/use_nearest_mipmap_filter=false
+textures/vram_compression/import_etc2_astc=true
+
+[input_devices]
+pointing/emulate_mouse_from_touch=true
+pointing/emulate_touch_from_mouse=false
+
+[physics]
+common/physics_ticks_per_second=60

@@ -58,7 +58,7 @@ func _run() -> void:
 		_fail("Zombie death reward contract failed")
 		return
 
-	var director := HordeScript.new()
+	var director: Node = HordeScript.new()
 	if director == null:
 		_fail("HordeDirector could not be instantiated")
 		return

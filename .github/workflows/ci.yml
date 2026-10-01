@@ -17,6 +17,7 @@ jobs:
   validate:
     name: Offline + Godot validation
     runs-on: ubuntu-24.04
+    timeout-minutes: 8
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -43,14 +44,14 @@ jobs:
         run: godot --version
 
       - name: Import project and parse resources
-        run: godot --headless --editor --path . --quit
+        run: timeout 60s godot --headless --editor --path . --quit
 
       - name: Run project smoke test
         env:
           XDG_DATA_HOME: ${{ runner.temp }}/last-signal-smoke
-        run: godot --headless --path . --script scripts/ci/smoke.gd
+        run: timeout 60s godot --headless --path . --script scripts/ci/smoke.gd
 
       - name: Run gameplay smoke test
         env:
           XDG_DATA_HOME: ${{ runner.temp }}/last-signal-gameplay
-        run: godot --headless --path . --script scripts/ci/gameplay_smoke.gd
+        run: timeout 60s godot --headless --path . --script scripts/ci/gameplay_smoke.gd

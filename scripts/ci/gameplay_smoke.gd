@@ -8,7 +8,11 @@ func _initialize() -> void:
 	call_deferred("_run")
 
 func _run() -> void:
-	GameState.begin_session()
+	var game_state := root.get_node_or_null("GameState")
+	if game_state == null:
+		_fail("GameState autoload is missing")
+		return
+	game_state.begin_session()
 
 	var arena := Node3D.new()
 	root.add_child(arena)

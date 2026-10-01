@@ -1,21 +1,32 @@
 extends SceneTree
 
-const PlayerScript = preload("res://src/player/Player.gd")
-const ZombieScript = preload("res://src/enemies/Zombie.gd")
-const HordeScript = preload("res://src/game/HordeDirector.gd")
+var PlayerScript: Script
+var ZombieScript: Script
+var HordeScript: Script
 
 func _initialize() -> void:
 	call_deferred("_run")
 
 func _run() -> void:
 	var game_state := root.get_node_or_null("GameState")
-	if game_state == null:
-		_fail("GameState autoload is missing")
+	var save_system := root.get_node_or_null("SaveSystem")
+	if game_state == null or save_system == null:
+		_fail("Required autoloads are missing")
 		return
+
+	# Load gameplay scripts only after project autoloads are registered.
+	PlayerScript = load("res://src/player/Player.gd") as Script
+	ZombieScript = load("res://src/enemies/Zombie.gd") as Script
+	HordeScript = load("res://src/game/HordeDirector.gd") as Script
+	for script in [PlayerScript, ZombieScript, HordeScript]:
+		if script == null or not script.can_instantiate():
+			_fail("Gameplay script could not compile after autoload initialization")
+			return
+
 	game_state.begin_session()
 
-	# Keep this smoke test synchronous: it validates gameplay contracts without
-	# depending on physics/render frames, so CI cannot stall on headless timing.
+	# Keep this smoke test synchronous: validate contracts without relying on
+	# physics/render frames so the headless CI step is deterministic.
 	var player := PlayerScript.new() as CharacterBody3D
 	if player == null:
 		_fail("Player could not be instantiated")

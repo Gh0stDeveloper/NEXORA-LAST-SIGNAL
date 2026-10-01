@@ -103,7 +103,7 @@ func _input(event: InputEvent) -> void:
 			player.set_mobile_move(delta)
 			stick_knob.position = Vector2(118, -190) + delta * 48.0
 		elif event.index == look_touch:
-			var look_delta := event.position - last_look
+			var look_delta: Vector2 = event.position - last_look
 			last_look = event.position
 			player.add_mobile_look(look_delta * 0.65)
 

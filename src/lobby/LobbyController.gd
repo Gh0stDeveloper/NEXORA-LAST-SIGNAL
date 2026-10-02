@@ -533,12 +533,12 @@ func _refresh_mode() -> void:
 	_game_mode_button.text = "%s  ›" % preload("res://src/modes/ModeCatalog.gd").find(selected_game_mode).get("title","CAMPAÑA")
 	_difficulty_button.text = selected_difficulty.to_upper()
 	_briefing_tag.text = "OFFLINE"
-	var campaign_title := {
+	var campaign_title: String = String({
 		&"mission_01_first_signal":"PRIMERA\nSEÑAL",
 		&"mission_02_last_broadcast":"ÚLTIMA\nTRANSMISIÓN",
 		&"mission_03_blackout":"BLACKOUT",
 		&"mission_04_final_signal":"SEÑAL\nFINAL",
-	}.get(selected_mission,"CAMPAÑA")
+	}.get(selected_mission,"CAMPAÑA"))
 	_briefing_title.text = campaign_title if selected_game_mode == "campaign" else {"waves":"ASALTO\n10 OLEADAS","endless":"RESISTENCIA\nINFINITA"}.get(selected_game_mode,"OPERACIÓN")
 	_update_local_party()
 

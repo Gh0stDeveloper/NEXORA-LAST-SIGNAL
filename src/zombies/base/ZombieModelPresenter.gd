@@ -32,7 +32,7 @@ var _gore_destroyed_parts: Dictionary = {}
 
 func _ready() -> void:
 	_prepared_rig = get_node_or_null(prepared_rig_path) as Node3D
-	if DisplayServer.get_name() == "headless" or OS.has_feature("dedicated_server"):
+	if DisplayServer.get_name() == "headless":
 		_visuals_enabled = false
 		visible = false
 		set_process(false)

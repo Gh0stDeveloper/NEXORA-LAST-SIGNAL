@@ -19,7 +19,7 @@ var _current_character: StringName = &""
 var _animation_status: Dictionary = {}
 
 func _ready() -> void:
-	if DisplayServer.get_name() == "headless" or OS.has_feature("dedicated_server"):
+	if DisplayServer.get_name() == "headless":
 		set_process(false)
 		return
 	GuestIdentity.selected_character_changed.connect(_on_character_changed)

@@ -10,7 +10,7 @@ var _state := -1
 var _last_health := -1.0
 
 func _ready() -> void:
-	if DisplayServer.get_name() == "headless" or OS.has_feature("dedicated_server"):
+	if DisplayServer.get_name() == "headless":
 		set_process(false)
 		return
 	_body = get_parent() as CharacterBody3D

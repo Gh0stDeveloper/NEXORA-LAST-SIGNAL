@@ -15,7 +15,7 @@ var _rim_light: OmniLight3D
 var _fill_light: OmniLight3D
 
 func _ready() -> void:
-	if DisplayServer.get_name() == "headless" or OS.has_feature("dedicated_server"):
+	if DisplayServer.get_name() == "headless":
 		set_process(false)
 		return
 	set_process(false)

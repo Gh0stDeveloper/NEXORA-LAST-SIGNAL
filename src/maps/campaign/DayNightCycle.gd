@@ -22,7 +22,7 @@ func _ready() -> void:
 	# deliberately skips WorldEnvironment/MoonLight creation there, so retrying
 	# lighting initialization would enqueue one deferred call forever and can
 	# exhaust Godot's MessageQueue. Rendering is disabled in headless mode anyway.
-	if DisplayServer.get_name() == "headless" or OS.has_feature("dedicated_server"):
+	if DisplayServer.get_name() == "headless":
 		set_process(false)
 		return
 	set_process(false)
@@ -44,7 +44,7 @@ func set_time(value: float) -> void:
 		_apply_lighting()
 
 func _initialize_lighting() -> void:
-	if DisplayServer.get_name() == "headless" or OS.has_feature("dedicated_server"):
+	if DisplayServer.get_name() == "headless":
 		set_process(false)
 		return
 	var arena := get_parent()

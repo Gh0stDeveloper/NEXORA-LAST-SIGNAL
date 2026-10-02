@@ -22,7 +22,7 @@ static func create_structure(
 	collision.shape = shape
 	body.add_child(collision)
 	parent.add_child(body)
-	if DisplayServer.get_name() == "headless" or OS.has_feature("dedicated_server"):
+	if DisplayServer.get_name() == "headless":
 		return body
 	var visual_root := Node3D.new()
 	visual_root.name = "ProceduralModel"

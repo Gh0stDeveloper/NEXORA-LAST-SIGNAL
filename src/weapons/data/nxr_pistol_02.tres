@@ -1,0 +1,15 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+[ext_resource type="Script" path="res://src/weapons/base/WeaponData.gd" id="1"]
+[resource]
+script = ExtResource("1")
+weapon_id = &"nxr_pistol_02"
+display_name = "NXR-12 Hammer"
+base_damage = 34.0
+magazine_size = 12
+starting_reserve_ammo = 72
+max_reserve_ammo = 180
+rounds_per_minute = 255.0
+reload_seconds = 1.70
+max_distance = 110.0
+penetration = 0.08
+automatic = false

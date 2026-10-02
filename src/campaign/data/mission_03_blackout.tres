@@ -1,0 +1,62 @@
+[gd_resource type="Resource" script_class="DeadfallCampaignMissionData" load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://src/campaign/CampaignMissionData.gd" id="1_mission"]
+[ext_resource type="Script" path="res://src/campaign/CampaignObjectiveData.gd" id="2_objective"]
+
+[sub_resource type="Resource" id="ReachStation"]
+script = ExtResource("2_objective")
+objective_id = &"reach_power_station"
+objective_type = 0
+title = "Llega a la subestación"
+description = "Cruza el distrito y alcanza la subestación de emergencia."
+target_id = &"PowerStation"
+radius = 4.0
+checkpoint_id = &"PowerStation"
+
+[sub_resource type="Resource" id="RestartGenerator"]
+script = ExtResource("2_objective")
+objective_id = &"restart_generator"
+objective_type = 3
+title = "Reinicia el generador"
+description = "Mantén INTERACTUAR en el panel hasta restaurar la energía."
+target_id = &"GeneratorConsole"
+radius = 2.5
+interact_hold_seconds = 2.8
+checkpoint_id = &"GeneratorConsole"
+
+[sub_resource type="Resource" id="ClearGrid"]
+script = ExtResource("2_objective")
+objective_id = &"clear_grid"
+objective_type = 1
+title = "Limpia la zona eléctrica"
+description = "Elimina a los infectados atraídos por el reinicio."
+required_count = 16
+checkpoint_id = &"GeneratorConsole"
+
+[sub_resource type="Resource" id="HoldGrid"]
+script = ExtResource("2_objective")
+objective_id = &"hold_power"
+objective_type = 2
+title = "Mantén la energía estable"
+description = "Sobrevive mientras la red de emergencia se estabiliza."
+duration_seconds = 28.0
+checkpoint_id = &"GeneratorConsole"
+
+[sub_resource type="Resource" id="ReachDepot"]
+script = ExtResource("2_objective")
+objective_id = &"reach_supply_depot"
+objective_type = 4
+title = "Alcanza el depósito"
+description = "Llega al depósito de suministros para preparar la siguiente operación."
+target_id = &"SupplyDepot"
+radius = 4.0
+checkpoint_id = &"SupplyDepot"
+
+[resource]
+script = ExtResource("1_mission")
+mission_id = &"mission_03_blackout"
+campaign_id = &"deadfall_outbreak"
+title = "Mission 03 — Blackout"
+description = "Restaura la energía de emergencia y abre una ruta segura hacia el depósito."
+objectives = Array[Resource]([SubResource("ReachStation"), SubResource("RestartGenerator"), SubResource("ClearGrid"), SubResource("HoldGrid"), SubResource("ReachDepot")])
+next_mission_id = &"mission_04_final_signal"

@@ -1,73 +1,102 @@
 # Architecture
 
-## Overview
+## Goal
 
-NEXORA: LAST SIGNAL is a single-device simulation. The executable owns all gameplay state and never delegates authoritative decisions to a server.
+NEXORA: LAST SIGNAL is a local-authority port of NEXORA: DEADFALL. Shared gameplay concepts remain, but the authoritative simulation is always inside the player's process.
+
+## Runtime graph
 
 ```text
+Game (autoload)
+└─ LocalAuthority
+   └─ damageables by entity id
+
 Boot
- ├─ SaveSystem ── user://profile.json
- └─ GameWorld
-     ├─ Player
-     ├─ HordeDirector
-     │   └─ Zombie instances
-     ├─ HUD
-     └─ MobileControls (Android/mobile only)
+├─ OfflineLobby
+└─ LastSignalOutbreakDistrict
+   ├─ CityArena / navigation
+   ├─ DayNightCycle
+   ├─ LocalPlayers
+   │  ├─ Player_1
+   │  └─ AI companions
+   ├─ HordeZombies
+   ├─ WorldPickups
+   ├─ HordeDirector
+   ├─ CampaignDirector
+   ├─ AmmoDropDirector
+   ├─ LootDirector
+   ├─ BossDirector
+   ├─ DifficultyDirector
+   └─ HUD layers
 ```
 
-## Autoloads
+## Authority
 
-### `SaveSystem`
+`Game.gd` exposes only `NONE` and `LOCAL`. It creates `LocalAuthority`, which registers health components and resolves damage through DEADFALL damage rules.
 
-Owns local persistent profile data. It loads defaults, merges an existing save, recalculates derived level state and writes JSON to `user://profile.json`.
+Legacy network/dedicated compatibility methods were removed. Retained gameplay components now call local authority directly.
 
-### `GameState`
+## City
 
-Owns one active run's transient statistics: kills, NXC, XP, wave, shots and hits. Rewards are forwarded to `SaveSystem` immediately so progression is not dependent on a clean application exit.
+`CityLayout.gd` is deterministic and describes the 192×192 collision/world layout. `CityPresentation.gd` builds batched rendering. `CityArena.gd` generates navigation locally.
 
-## Boot layer
+No server sends map state.
 
-`Boot.tscn` is the configured main scene. `Boot.gd` creates the main menu, reads local profile data and launches a new `GameWorld` instance.
+## Campaign
 
-## World layer
-
-`GameWorld.gd` creates the prototype environment, player, local horde director, HUD and optional mobile controls. It is also responsible for pause/resume, Game Over and returning to the main menu.
+`CampaignDirector.gd` evaluates objectives on the local simulation authority. `CampaignSaveStore.gd` provides checksum-protected checkpoint persistence with backup recovery.
 
 ## Combat
 
-`Player.gd` owns movement, camera rotation, local hitscan ray queries, ammunition, health and input. Hits are resolved directly against local physics objects.
+Player weapons and infected damage resolve through `LocalAuthority`. There is no command transport, prediction/reconciliation requirement or remote damage resolver.
 
-There is no command queue, reconciliation, packet transport or remote authority step.
+## Offline squad
 
-## Zombie simulation
+`OfflineSquadDirector.gd` creates AI companions. `AICompanion.gd` follows the local player, selects infected targets and creates local damage events.
 
-`Zombie.gd` runs entirely through local physics processing. A zombie receives a local player reference, approaches it, attacks in melee range, accepts local damage and emits a local death/reward signal.
+## Progression
 
-`HordeDirector.gd` controls wave number, spawn counts, population pressure and archetype selection. All timers and counters live in the local scene tree.
+`ProgressStore.gd` stores XP, NXC, level, best wave, completed missions and run count locally.
 
-## UI
+## Inventory and loot
 
-`HUD.gd` subscribes to local player and horde signals. `MobileControls.gd` translates touch gestures/buttons directly into methods on the local `Player` object.
+`Inventory.gd` owns local items/weapons. `LootDirector.gd` creates `LootPickup.gd` objects from local zombie deaths.
 
-## Data boundaries
+## External model boundary
 
-Persistent:
+The separate Objetos3D repository is not part of this graph. `ExternalModelCatalog.gd` is an offline compatibility facade that never resolves an external model. DEADFALL's built-in procedural/skinned rigs provide the visual fallback.
 
-- XP
-- NXC
-- level
-- best wave
-- settings
+## Presentation
 
-Session-only:
+The port retains DEADFALL tactical UI, mode art, operator avatars, local audio, procedural weapons, gore, lighting and HUD layout editor.
 
-- current health
-- current ammo
-- current wave population
-- run kills
-- run rewards
-- shot/hit counters
+## Removed boundaries
 
-## Dependency rule
+The runtime contains no network, server, login or social module directories. CI checks this structurally and scans runtime resources for network APIs and forbidden module references.
 
-Runtime code must not introduce a required network client, socket, multiplayer peer or remote API. CI enforces this rule through `tools/verify_offline.py` and Android export permission checks.
+
+## DEADFALL presentation flow
+
+```text
+Boot.tscn
+└─ DEADFALL-style asynchronous splash
+   └─ Lobby.tscn
+      ├─ TacticalBackdrop
+      ├─ OperatorStage
+      ├─ PartyRail (local player + AI)
+      ├─ Arsenal
+      ├─ Difficulty
+      ├─ Mode/Mission picker
+      └─ MatchLoadingOverlay
+         └─ OutbreakDistrict
+```
+
+The loading/lobby layer contains no matchmaking, social or account service dependency.
+
+## Weapon selection
+
+`WeaponCatalog.gd` maps local weapon IDs to `WeaponData` resources. `GuestIdentity` persists the selected primary and secondary IDs; the arena applies those resources before the player enters the scene tree.
+
+## Boss abilities
+
+`BossDirector.gd` creates milestone bosses and attaches `BossBehavior.gd`. Titan performs local shockwave damage; Screamer Prime creates local infected reinforcements through the horde director.

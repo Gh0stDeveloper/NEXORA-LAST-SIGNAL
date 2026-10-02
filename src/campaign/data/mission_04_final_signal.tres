@@ -1,0 +1,71 @@
+[gd_resource type="Resource" script_class="DeadfallCampaignMissionData" load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://src/campaign/CampaignMissionData.gd" id="1_mission"]
+[ext_resource type="Script" path="res://src/campaign/CampaignObjectiveData.gd" id="2_objective"]
+
+[sub_resource type="Resource" id="ReachNorthGate"]
+script = ExtResource("2_objective")
+objective_id = &"reach_north_gate"
+objective_type = 0
+title = "Llega a la puerta norte"
+description = "Avanza hasta el último perímetro de cuarentena."
+target_id = &"NorthGate"
+radius = 4.0
+checkpoint_id = &"NorthGate"
+
+[sub_resource type="Resource" id="ReachBeacon"]
+script = ExtResource("2_objective")
+objective_id = &"reach_beacon_yard"
+objective_type = 0
+title = "Alcanza la baliza"
+description = "Entra al patio de comunicaciones del perímetro."
+target_id = &"BeaconYard"
+radius = 4.0
+checkpoint_id = &"BeaconYard"
+
+[sub_resource type="Resource" id="ActivateBeacon"]
+script = ExtResource("2_objective")
+objective_id = &"activate_final_beacon"
+objective_type = 3
+title = "Activa la baliza final"
+description = "Mantén INTERACTUAR y transmite la última señal."
+target_id = &"BeaconConsole"
+radius = 2.5
+interact_hold_seconds = 3.2
+checkpoint_id = &"BeaconConsole"
+
+[sub_resource type="Resource" id="FinalClear"]
+script = ExtResource("2_objective")
+objective_id = &"final_clear"
+objective_type = 1
+title = "Rompe el asedio"
+description = "Elimina a los infectados que rodean el punto de transmisión."
+required_count = 20
+checkpoint_id = &"BeaconConsole"
+
+[sub_resource type="Resource" id="LastStand"]
+script = ExtResource("2_objective")
+objective_id = &"last_stand"
+objective_type = 2
+title = "Última resistencia"
+description = "Mantén la posición hasta que termine la transmisión."
+duration_seconds = 35.0
+checkpoint_id = &"BeaconConsole"
+
+[sub_resource type="Resource" id="FinalEvac"]
+script = ExtResource("2_objective")
+objective_id = &"final_evac"
+objective_type = 4
+title = "Evacuación final"
+description = "Cruza el corredor norte y alcanza la zona de extracción."
+target_id = &"FinalEvac"
+radius = 4.5
+checkpoint_id = &"FinalEvac"
+
+[resource]
+script = ExtResource("1_mission")
+mission_id = &"mission_04_final_signal"
+campaign_id = &"deadfall_outbreak"
+title = "Mission 04 — Final Signal"
+description = "Activa la última baliza, resiste el asedio y abandona el distrito."
+objectives = Array[Resource]([SubResource("ReachNorthGate"), SubResource("ReachBeacon"), SubResource("ActivateBeacon"), SubResource("FinalClear"), SubResource("LastStand"), SubResource("FinalEvac")])

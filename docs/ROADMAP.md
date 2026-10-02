@@ -1,79 +1,58 @@
 # Roadmap
 
-The roadmap is ordered to preserve a playable build after each phase.
+## 0.2 — DEADFALL offline port
 
-## Phase A — Foundation
+- [x] DEADFALL tactical visual language.
+- [x] DEADFALL audio/ambience.
+- [x] DEADFALL operator avatars.
+- [x] Built-in procedural/skinned operator presentation.
+- [x] DEADFALL player locomotion/cameras.
+- [x] Rifle/pistol/machete combat.
+- [x] DEADFALL five-zombie roster.
+- [x] Horde director.
+- [x] 192×192 campaign city.
+- [x] Day/night cycle.
+- [x] Campaign Mission 01 and Mission 02.
+- [x] Local checkpoint persistence.
+- [x] Gore system.
+- [x] Mobile HUD + HUD editor.
+- [x] Offline inventory.
+- [x] Expanded local loot.
+- [x] Story/Normal/Hard/Nightmare.
+- [x] Boss milestone layer.
+- [x] 0–3 local AI companions.
+- [x] Local XP/NXC/run progression.
+- [x] Strict no-network/Objetos3D audit.
 
-- [x] Independent Godot project.
-- [x] 100% local session architecture.
-- [x] First-person movement and combat.
-- [x] Five zombie variants.
-- [x] Infinite local waves.
-- [x] XP/NXC/local profile persistence.
-- [x] Android touch input baseline.
-- [x] Offline CI audit.
-- [x] Godot smoke tests.
-- [x] Android ARM64 debug CI build.
+## 0.3 — DEADFALL parity + offline expansion
 
-## Phase B — Combat systems
+- [x] DEADFALL startup/loading presentation.
+- [x] DEADFALL tactical lobby converted to local formations.
+- [x] Mission 03 — Blackout.
+- [x] Mission 04 — Final Signal.
+- [x] Additional firearm families (SMG/DMR/LMG/heavy pistol).
+- [x] Persistent local loadout selection.
+- [x] Titan boss ability behavior.
+- [x] Screamer Prime summon behavior.
+- [x] Companion revive/support roles.
+- [x] Remove residual server/replica APIs from retained gameplay scripts.
+- [x] CI gate forbidding online compatibility APIs.
 
-- [ ] Weapon data/resources.
-- [ ] Rifle, pistol and melee slots.
-- [ ] ADS.
-- [ ] recoil and spread.
-- [ ] reload timing/animations.
-- [ ] weapon switching.
-- [ ] ammo and healing pickups.
+## 0.4 — Production polish
 
-## Phase C — Enemy depth
+- [ ] More loot rarity/economy depth.
+- [ ] Expanded inventory/equipment presentation.
+- [ ] Additional city districts while retaining mobile budgets.
+- [ ] Additional operator cosmetic variants.
+- [ ] Expanded animation variety for new boss behaviors.
+- [ ] Accessibility pass.
+- [ ] Save migration/regression suite.
+- [ ] Long-session thermal/performance profiling on physical Android devices.
 
-- [ ] Dedicated behavior per archetype.
-- [ ] Screamer buff/summon behavior.
-- [ ] Tank stagger/armor behavior.
-- [ ] Crawler locomotion specialization.
-- [ ] hit reactions.
-- [ ] bosses and elite modifiers.
+## Release hardening
 
-## Phase D — World and presentation
-
-- [ ] Larger destroyed-city map.
-- [ ] enterable structures.
-- [ ] environmental cover and traversal.
-- [ ] day/night cycle.
-- [ ] fog, fire and lighting polish.
-- [ ] original soundscape and music.
-- [ ] optimized character/zombie assets.
-
-## Phase E — Campaign
-
-- [ ] mission framework.
-- [ ] objectives.
-- [ ] checkpoints.
-- [ ] local campaign save slots.
-- [ ] mission result screens.
-- [ ] difficulty modes.
-
-## Phase F — Offline squad
-
-- [ ] AI companions.
-- [ ] local squad commands.
-- [ ] revive/downed states.
-- [ ] companion loadouts.
-- [ ] local team result summary.
-
-## Phase G — Mobile production pass
-
-- [ ] HUD editor.
-- [ ] sensitivity profiles.
-- [ ] graphics presets.
-- [ ] performance/thermal budgets.
-- [ ] accessibility options.
-- [ ] broader device compatibility testing.
-
-## Phase H — Release hardening
-
-- [ ] production signing identity.
-- [ ] versioned release workflow.
-- [ ] release notes/changelog automation.
-- [ ] physical-device regression suite.
-- [ ] crash-free offline acceptance testing.
+- [ ] Production Android signing.
+- [ ] Release-channel workflow.
+- [ ] Long-session soak tests on physical devices.
+- [ ] Physical-device offline acceptance matrix.
+- [ ] Crash/ANR regression checks that do not require telemetry.

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+[ext_resource type="Script" path="res://src/weapons/base/WeaponData.gd" id="1"]
+[resource]
+script = ExtResource("1")
+weapon_id = &"nxr_dmr_01"
+display_name = "NXR-18 Marksman"
+base_damage = 46.0
+magazine_size = 20
+starting_reserve_ammo = 100
+max_reserve_ammo = 240
+rounds_per_minute = 310.0
+reload_seconds = 2.35
+max_distance = 230.0
+penetration = 0.22
+automatic = false

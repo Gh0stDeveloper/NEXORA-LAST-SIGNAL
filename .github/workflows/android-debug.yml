@@ -2,7 +2,7 @@ name: Android Debug Build
 
 on:
   push:
-    branches: [main]
+    branches: [main, offline-deadfall-port]
     paths:
       - "project.godot"
       - "export_presets.cfg"

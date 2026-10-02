@@ -25,6 +25,14 @@ func _run() -> void:
 			_fail("Missing required DEADFALL-port resource: %s" % path)
 			return
 
+	var scripts:Array[String]=[]
+	_collect_scripts("res://src",scripts)
+	for path in scripts:
+		var resource:=load(path)
+		if resource==null or not resource is Script or not (resource as Script).can_instantiate():
+			_fail("Runtime script failed to compile: %s" % path)
+			return
+
 	for autoload_name in ["Game","Settings","AudioDirector","PerformanceTuner","GuestIdentity","Gore","Progress"]:
 		if root.get_node_or_null(autoload_name) == null:
 			_fail("Missing autoload: %s" % autoload_name)
@@ -59,8 +67,24 @@ func _run() -> void:
 		return
 	boot.free()
 
-	print("NEXORA: LAST SIGNAL project smoke test passed")
+	print("NEXORA: LAST SIGNAL project smoke test passed; scripts=%d" % scripts.size())
 	quit(0)
+
+func _collect_scripts(path:String,out:Array[String])->void:
+	var dir:=DirAccess.open(path)
+	if dir==null:
+		return
+	dir.list_dir_begin()
+	var name:=dir.get_next()
+	while not name.is_empty():
+		if name!="." and name!="..":
+			var full:=path.path_join(name)
+			if dir.current_is_dir():
+				_collect_scripts(full,out)
+			elif name.ends_with(".gd"):
+				out.append(full)
+		name=dir.get_next()
+	dir.list_dir_end()
 
 func _fail(message:String)->void:
 	push_error(message)

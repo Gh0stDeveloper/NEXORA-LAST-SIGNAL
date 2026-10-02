@@ -44,7 +44,7 @@ func _run()->void:
 		return
 
 	var InventoryScript:=load("res://src/offline/Inventory.gd") as Script
-	var inventory:=InventoryScript.new()
+	var inventory:Node=InventoryScript.new()
 	if int(inventory.call("add_item",&"medkit",2))!=2 or not bool(inventory.call("has_item",&"medkit",2)):
 		_fail("Local inventory contract failed")
 		return

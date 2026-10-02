@@ -7,8 +7,7 @@ var _navigation_region: NavigationRegion3D
 func _ready() -> void:
 	_build_environment()
 	_build_geometry()
-	if not Game.is_network_client():
-		call_deferred("_build_navigation")
+	call_deferred("_build_navigation")
 
 func _build_environment() -> void:
 	if not preload("res://src/core/PresentationRuntime.gd").enabled():

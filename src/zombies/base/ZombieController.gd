@@ -352,38 +352,6 @@ func _disable_after_death() -> void:
 		var corpse_slot := int(manager.call("spawn_corpse", global_transform, _death_hit_direction))
 		if corpse_slot >= 0: visual_root.visible = false
 
-func get_network_snapshot() -> Dictionary:
-	return {
-		"entity_id": entity_id,
-		"archetype_id": StringName(zombie_data.get("archetype_id")) if zombie_data != null else &"walker",
-		"position": global_position,
-		"yaw": rotation.y,
-		"velocity": velocity,
-		"state": state,
-		"crawler": _crawler_mode,
-		"health": float(health.get("current_health")) if health != null else 0.0,
-		"max_health": float(health.get("max_health")) if health != null else 100.0,
-		"dead": bool(health.call("is_dead")) if health != null and health.has_method("is_dead") else state == State.DEAD,
-		"destroyed_parts": gore.call("get_destroyed_parts") if gore != null and gore.has_method("get_destroyed_parts") else [],
-	}
-
-func apply_network_snapshot(snapshot: Dictionary) -> void:
-	if has_simulation_authority(): return
-	state = int(snapshot.get("state", state))
-	if bool(snapshot.get("crawler", false)) and not _crawler_mode: _on_crawler_required(null)
-	var network_authority = Game.authority if get_tree() != null else null
-	if network_authority != null and network_authority.has_method("apply_health_snapshot"):
-		network_authority.call("apply_health_snapshot", entity_id, float(snapshot.get("health", 100.0)), float(snapshot.get("max_health", 100.0)), bool(snapshot.get("dead", false)))
-	if gore != null and gore.has_method("apply_replica_destroyed_parts"): gore.call("apply_replica_destroyed_parts", Array(snapshot.get("destroyed_parts", [])))
-	if state == State.DEAD:
-		collision_layer = 0; collision_mask = 0; visual_root.rotation_degrees.z = 82.0
-	_update_debug_label()
-
-func apply_replica_presentation(snapshot: Dictionary) -> void:
-	state = int(snapshot.get("state", state))
-	if bool(snapshot.get("crawler", false)) and not _crawler_mode: _on_crawler_required(null)
-	_update_debug_label()
-
 func _stop_horizontal() -> void: velocity.x = move_toward(velocity.x, 0.0, 0.8); velocity.z = move_toward(velocity.z, 0.0, 0.8)
 func _face_position(position_value: Vector3) -> void:
 	var direction := position_value - global_position; direction.y = 0.0

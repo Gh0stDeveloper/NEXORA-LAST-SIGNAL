@@ -35,7 +35,6 @@ var authority_override: RefCounted
 var _target_root: Node3D
 var _horde: Node
 var _interaction_progress: Dictionary = {}
-var _replica_status: Dictionary = {}
 
 func _ready() -> void:
 	_resolve_nodes()
@@ -81,7 +80,6 @@ func start_mission(new_mission: Resource = null, restore_from_checkpoint: bool =
 	objective_progress = 0.0
 	checkpoint_id = &""
 	_interaction_progress.clear()
-	_replica_status.clear()
 	var restored_completed := false
 	if restore_from_checkpoint and _can_persist():
 		restored_completed = _restore_progress()
@@ -119,22 +117,7 @@ func report_zombie_kill(count: int = 1) -> bool:
 		_complete_current_objective()
 	return true
 
-func apply_replica_snapshot(snapshot: Dictionary) -> void:
-	if has_simulation_authority() or snapshot.is_empty():
-		return
-	var previous := state
-	_replica_status = snapshot.duplicate(true)
-	state = int(snapshot.get("state", state))
-	objective_index = int(snapshot.get("objective_index", objective_index))
-	objective_progress = float(snapshot.get("progress", objective_progress))
-	checkpoint_id = StringName(snapshot.get("checkpoint_id", checkpoint_id))
-	if previous != state:
-		state_changed.emit(previous, state, "network_snapshot")
-	objective_progress_changed.emit(objective_index, objective_progress, float(snapshot.get("required", 1.0)))
-
 func get_status_snapshot() -> Dictionary:
-	if not has_simulation_authority() and not _replica_status.is_empty():
-		return _replica_status.duplicate(true)
 	var objective := get_current_objective()
 	var required := float(objective.call("required_value")) if objective != null and objective.has_method("required_value") else 1.0
 	var current_id: StringName = StringName(objective.get("objective_id")) if objective != null else &""
@@ -304,11 +287,6 @@ func _player_entity_id(player: Node3D) -> int:
 func _player_wants_interact(player: Node3D) -> bool:
 	if player == null:
 		return false
-	var mode_value = player.get("control_mode")
-	if mode_value != null and int(mode_value) == 2:
-		var server_command = player.get("_server_command")
-		if typeof(server_command) == TYPE_DICTIONARY:
-			return bool(Dictionary(server_command).get("interact", false))
 	var input_source := player.get_node_or_null("PlayerInput")
 	return input_source != null and input_source.has_method("is_action_pressed") and bool(input_source.call("is_action_pressed", &"interact"))
 

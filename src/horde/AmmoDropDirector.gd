@@ -66,7 +66,7 @@ func _spawn_ammo(position: Vector3, amount: int, kind: String = "ammo") -> void:
 	_next_pickup_id += 1
 	pickup.name = "AmmoPickup_%d" % id
 	if pickup.has_method("configure"):
-		pickup.call("configure", id, amount, false, kind)
+		pickup.call("configure", id, amount, kind)
 	_pickups_root.add_child(pickup)
 	pickup.global_position = position + Vector3(0.0, 0.08, 0.0)
 	print("DEADFALL_AMMO_DROP id=%d amount=%d" % [id, amount])

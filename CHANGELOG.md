@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.3.0-alpha.1
+
+### DEADFALL parity and offline expansion
+
+- Restored the DEADFALL asynchronous splash/loading presentation for LAST SIGNAL.
+- Rebuilt the lobby on the DEADFALL tactical layout: operator stage, party rail, navigation, mode selection, arsenal and visual polish.
+- Replaced online party slots with SOLO, DÚO IA and ESCUADRA IA formations.
+- Added Mission 03 — Blackout.
+- Added Mission 04 — Final Signal.
+- Added campaign targets/checkpoints for the expanded missions.
+- Added NXR-7 Viper SMG.
+- Added NXR-18 Marksman DMR.
+- Added NXR-60 Bastion LMG.
+- Added NXR-12 Hammer heavy sidearm.
+- Added persistent local primary/secondary loadout selection.
+- Added Titan boss shockwave behavior.
+- Added Screamer Prime summon behavior.
+- Added companion revive logic and role-specific AI tuning.
+- Added Sentinel emergency support healing.
+- Removed residual server fire/reload/melee APIs.
+- Removed runtime network/replica snapshot compatibility from health, campaign, horde, zombies, pickups and gore.
+- Removed dedicated-server presentation branches from the offline runtime.
+- Hardened offline CI so legacy server/replica APIs are rejected if reintroduced.
+
 ## 0.2.0-alpha.1
 
 ### DEADFALL offline-port conversion

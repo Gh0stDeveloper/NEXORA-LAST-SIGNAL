@@ -72,13 +72,6 @@ func force_authoritative_death(event = null) -> bool:
 	died.emit(event)
 	return true
 
-func apply_network_snapshot(current: float, maximum: float, dead: bool) -> bool:
-	max_health = maxf(1.0, maximum)
-	current_health = clampf(current, 0.0, max_health)
-	_dead = dead or current_health <= 0.0
-	health_changed.emit(current_health, max_health, null)
-	return true
-
 func restore_authoritative_state(current: float, maximum: float, dead: bool) -> bool:
 	if not _can_mutate_authoritative_state():
 		return false
@@ -89,10 +82,7 @@ func restore_authoritative_state(current: float, maximum: float, dead: bool) -> 
 	return true
 
 func _can_mutate_authoritative_state() -> bool:
-	var game := get_tree().root.get_node_or_null("Game") if get_tree() != null else null
-	if game != null and game.has_method("is_network_client") and bool(game.call("is_network_client")):
-		return false
-	return true
+	return Game != null and Game.is_simulation_authority()
 
 func _register_with_active_authority() -> void:
 	if entity_id == 0 or get_tree() == null:

@@ -29,13 +29,5 @@ func is_local_session() -> bool:
 func is_simulation_authority() -> bool:
 	return is_local_session()
 
-# Compatibility for shared DEADFALL gameplay components. These are permanently
-# false in LAST SIGNAL; there is no remote transport or server authority.
-func is_network_client() -> bool:
-	return false
-
-func is_dedicated_server() -> bool:
-	return false
-
 func get_active_authority() -> RefCounted:
 	return authority

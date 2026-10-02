@@ -12,7 +12,7 @@ The permanent runtime rule is simple:
 
 > **A player must be able to launch and play the complete game without Internet access, a server, an account service, matchmaking or any remote API.**
 
-Current version: **0.2.0-alpha.1**
+Current version: **0.3.0-alpha.1**
 
 ## What is retained from DEADFALL
 
@@ -28,7 +28,9 @@ The offline port reuses or adapts the local DEADFALL systems that do not require
 | Custom HUD layout editor | Retained |
 | First/third-person camera system | Retained |
 | Walk/sprint/jump/crouch/prone | Retained |
-| Rifle, pistol and machete | Retained |
+| NXR-4, NXR-9 and machete | Retained |
+| DEADFALL splash/loading screen | Retained and converted to local-only loading |
+| DEADFALL tactical lobby | Retained and converted to local operators/AI squad |
 | Hitscan/local damage authority | Retained |
 | Campaign framework | Retained |
 | Mission 01 · First Signal | Retained |
@@ -66,7 +68,7 @@ The following DEADFALL areas are deliberately not part of the runtime:
 - backend APIs;
 - deployment/VPS infrastructure;
 - web portal dependencies;
-- network replication, snapshots and remote authority as an execution requirement.
+- network replication/snapshot APIs and remote-authority compatibility branches.
 
 The Android package is exported with both Internet and network-state permissions disabled.
 
@@ -83,6 +85,10 @@ assets/external/objetos3d
 
 DEADFALL's built-in procedural/skinned operator and infected presentation remains available, so operators, avatars, weapons and zombies continue to have a complete local visual representation without that external repository.
 
+## DEADFALL loading and lobby
+
+The startup flow uses the DEADFALL presentation structure directly: tactical backdrop, Rajdhani typography, large NEXORA title treatment, asynchronous progress bar, quarantine hangar art and the tactical operator lobby. Online party/matchmaking actions were replaced by local formation controls for SOLO, DÚO IA and ESCUADRA IA. The lobby retains the 3D operator stage, party rail, arsenal, settings, mode cards and DEADFALL visual-polish layer.
+
 ## Offline game modes
 
 ### Campaign
@@ -93,6 +99,8 @@ Included mission definitions:
 
 - **Mission 01 · First Signal**
 - **Mission 02 · Last Broadcast**
+- **Mission 03 · Blackout**
+- **Mission 04 · Final Signal**
 
 Campaign checkpoint data is stored locally with checksum and backup recovery.
 
@@ -115,7 +123,10 @@ Companions:
 - fire locally simulated weapons;
 - receive local health/damage;
 - count toward horde squad scaling;
-- use the same built-in operator presentation system.
+- use the same built-in operator presentation system;
+- revive the player when downed;
+- provide role-specific combat behavior;
+- Sentinel can provide local emergency healing support.
 
 No companion state is transmitted anywhere.
 
@@ -135,7 +146,11 @@ The selected operator is stored on-device.
 The DEADFALL combat stack is reused locally:
 
 - **NXR-4 Carbine**
+- **NXR-7 Viper** — SMG
+- **NXR-18 Marksman** — DMR
+- **NXR-60 Bastion** — LMG
 - **NXR-9 Sidearm**
+- **NXR-12 Hammer** — heavy sidearm
 - **Machete**
 - finite magazines/reserve ammunition;
 - automatic reload/fallback;
@@ -171,7 +186,12 @@ DEADFALL archetypes are retained:
 - Tank
 - Screamer
 
-LAST SIGNAL also adds milestone **Titan** boss encounters every five waves. Boss health/damage scale with the active difficulty.
+LAST SIGNAL adds milestone bosses every five waves:
+
+- **Titan** — heavy infected with a close-range shockwave.
+- **Screamer Prime** — elite Screamer that periodically calls additional infected.
+
+Boss health, damage and ability cadence scale with wave progression and difficulty.
 
 ## Difficulty
 
@@ -301,6 +321,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 - Godot multiplayer APIs;
 - references to `src/network`, `src/server`, `src/social` or `src/login`;
 - references to the excluded Objetos3D runtime paths;
+- legacy server/replica APIs such as `server_try_*`, `apply_network_snapshot` and `apply_replica_*`;
 - Android Internet/network-state permissions.
 
 It also fails if forbidden online/external directories are physically present.

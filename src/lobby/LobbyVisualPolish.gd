@@ -178,6 +178,8 @@ func _kill_button_tween(button: Button) -> void:
 
 func _polish_character_stage(lobby: Control) -> void:
 	var viewport := lobby.get_node_or_null("SafeArea/OperatorStage/CharacterViewportContainer/CharacterViewport") as SubViewport
+	if viewport == null:
+		viewport = lobby.get_node_or_null("SafeArea/OperatorStage/StageContent/CharacterViewportContainer/CharacterViewport") as SubViewport
 	if viewport == null or viewport.get_child_count() == 0:
 		return
 	var root_3d := viewport.get_child(0) as Node3D

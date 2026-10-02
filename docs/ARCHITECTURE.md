@@ -34,7 +34,7 @@ Boot
 
 `Game.gd` exposes only `NONE` and `LOCAL`. It creates `LocalAuthority`, which registers health components and resolves damage through DEADFALL damage rules.
 
-Compatibility methods `is_network_client()` and `is_dedicated_server()` return false unconditionally so retained local components can query session capability without linking network code.
+Legacy network/dedicated compatibility methods were removed. Retained gameplay components now call local authority directly.
 
 ## City
 
@@ -73,3 +73,30 @@ The port retains DEADFALL tactical UI, mode art, operator avatars, local audio, 
 ## Removed boundaries
 
 The runtime contains no network, server, login or social module directories. CI checks this structurally and scans runtime resources for network APIs and forbidden module references.
+
+
+## DEADFALL presentation flow
+
+```text
+Boot.tscn
+└─ DEADFALL-style asynchronous splash
+   └─ Lobby.tscn
+      ├─ TacticalBackdrop
+      ├─ OperatorStage
+      ├─ PartyRail (local player + AI)
+      ├─ Arsenal
+      ├─ Difficulty
+      ├─ Mode/Mission picker
+      └─ MatchLoadingOverlay
+         └─ OutbreakDistrict
+```
+
+The loading/lobby layer contains no matchmaking, social or account service dependency.
+
+## Weapon selection
+
+`WeaponCatalog.gd` maps local weapon IDs to `WeaponData` resources. `GuestIdentity` persists the selected primary and secondary IDs; the arena applies those resources before the player enters the scene tree.
+
+## Boss abilities
+
+`BossDirector.gd` creates milestone bosses and attaches `BossBehavior.gd`. Titan performs local shockwave damage; Screamer Prime creates local infected reinforcements through the horde director.

@@ -11,6 +11,14 @@ const REQUIRED := [
 	"res://src/zombies/base/Zombie.tscn",
 	"res://src/campaign/data/mission_01_first_signal.tres",
 	"res://src/campaign/data/mission_02_last_broadcast.tres",
+	"res://src/campaign/data/mission_03_blackout.tres",
+	"res://src/campaign/data/mission_04_final_signal.tres",
+	"res://src/weapons/data/nxr_rifle_01.tres",
+	"res://src/weapons/data/nxr_smg_01.tres",
+	"res://src/weapons/data/nxr_dmr_01.tres",
+	"res://src/weapons/data/nxr_lmg_01.tres",
+	"res://src/weapons/data/nxr_pistol_01.tres",
+	"res://src/weapons/data/nxr_pistol_02.tres",
 	"res://assets/ui/quarantine_hangar.webp",
 	"res://assets/audio/last_signal.ogg",
 	"res://assets/audio/quarantine_wind.ogg",
@@ -52,20 +60,30 @@ func _run() -> void:
 	if arena.get_node_or_null("NetworkSession") != null or arena.get_node_or_null("CampaignNetworkBridge") != null:
 		_fail("Online nodes leaked into offline campaign scene")
 		return
+	for target in ["PowerStation","GeneratorConsole","SupplyDepot","NorthGate","BeaconYard","BeaconConsole","FinalEvac"]:
+		if arena.get_node_or_null("CampaignTargets/" + target) == null:
+			_fail("Expanded campaign target missing: %s" % target)
+			return
 	arena.free()
 
 	var boot_scene := load("res://src/main/Boot.tscn") as PackedScene
 	if boot_scene == null:
-		_fail("Boot.tscn failed to load")
+		_fail("DEADFALL-style Boot.tscn failed to load")
 		return
-	var boot := boot_scene.instantiate()
-	root.add_child(boot)
+
+	var lobby_scene := load("res://src/lobby/Lobby.tscn") as PackedScene
+	if lobby_scene == null:
+		_fail("DEADFALL-style lobby failed to load")
+		return
+	var lobby := lobby_scene.instantiate()
+	root.add_child(lobby)
 	await process_frame
 	await process_frame
-	if boot.get_child_count() == 0:
-		_fail("Boot did not create offline lobby")
-		return
-	boot.free()
+	for path in ["SafeArea/OperatorStage","SafeArea/PartyRail","SafeArea/MatchControls"]:
+		if lobby.get_node_or_null(path) == null:
+			_fail("DEADFALL lobby structure missing: %s" % path)
+			return
+	lobby.free()
 
 	print("NEXORA: LAST SIGNAL project smoke test passed; scripts=%d" % scripts.size())
 	quit(0)

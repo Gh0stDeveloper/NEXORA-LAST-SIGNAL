@@ -42,6 +42,27 @@ position = Vector3(14, 0.05, 14)
 [node name="ServiceTunnel" type="Marker3D" parent="CampaignTargets"]
 position = Vector3(0, 0.05, 30)
 
+[node name="PowerStation" type="Marker3D" parent="CampaignTargets"]
+position = Vector3(80, 0.1, 28)
+
+[node name="GeneratorConsole" type="Marker3D" parent="CampaignTargets"]
+position = Vector3(72, 0.1, 18)
+
+[node name="SupplyDepot" type="Marker3D" parent="CampaignTargets"]
+position = Vector3(-80, 0.1, 28)
+
+[node name="NorthGate" type="Marker3D" parent="CampaignTargets"]
+position = Vector3(0, 0.1, -84)
+
+[node name="BeaconYard" type="Marker3D" parent="CampaignTargets"]
+position = Vector3(-56, 0.1, -56)
+
+[node name="BeaconConsole" type="Marker3D" parent="CampaignTargets"]
+position = Vector3(-66, 0.1, -56)
+
+[node name="FinalEvac" type="Marker3D" parent="CampaignTargets"]
+position = Vector3(80, 0.1, -80)
+
 [node name="HordeSpawnPoints" type="Node3D" parent="."]
 [node name="NorthWest" type="Marker3D" parent="HordeSpawnPoints"]
 position = Vector3(-27, 0.05, -27)

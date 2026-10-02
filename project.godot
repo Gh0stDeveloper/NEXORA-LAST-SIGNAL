@@ -3,7 +3,7 @@ config_version=5
 
 [application]
 config/name="NEXORA: LAST SIGNAL"
-config/version="0.2.0-alpha.1"
+config/version="0.3.0-alpha.1"
 config/description="Offline edition of the NEXORA: DEADFALL gameplay experience"
 run/main_scene="res://src/main/Boot.tscn"
 config/features=PackedStringArray("4.6", "Mobile")

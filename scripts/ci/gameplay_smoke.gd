@@ -12,9 +12,6 @@ func _run()->void:
 	if not bool(game.call("is_local_session")) or not bool(game.call("is_simulation_authority")):
 		_fail("Local authority was not established")
 		return
-	if bool(game.call("is_network_client")) or bool(game.call("is_dedicated_server")):
-		_fail("Offline Game exposed an online session mode")
-		return
 
 	var player_scene:=load("res://src/player/Player.tscn") as PackedScene
 	var player:=player_scene.instantiate() as CharacterBody3D
@@ -64,6 +61,15 @@ func _run()->void:
 			_fail("Offline mode catalog contract failed: %s" % mode_id)
 			return
 
+	var WeaponCatalog:=load("res://src/weapons/WeaponCatalog.gd") as Script
+	if WeaponCatalog.all_for_slot("primary").size()<4 or WeaponCatalog.all_for_slot("secondary").size()<2:
+		_fail("Expanded local weapon catalog is incomplete")
+		return
+	for weapon_id in [&"nxr_rifle_01",&"nxr_smg_01",&"nxr_dmr_01",&"nxr_lmg_01",&"nxr_pistol_01",&"nxr_pistol_02"]:
+		if WeaponCatalog.resource_for(weapon_id)==null:
+			_fail("Weapon data missing: %s" % String(weapon_id))
+			return
+
 	var External:=load("res://src/assets/ExternalModelCatalog.gd") as Script
 	if bool(External.model_exists(External.character(&"operator_01"))):
 		_fail("Objetos3D external dependency unexpectedly enabled")
@@ -80,6 +86,17 @@ func _run()->void:
 	if int(restored.get("objective_index",-1))!=2 or String(restored.get("checkpoint_id",""))!="gate":
 		_fail("Campaign checkpoint restore failed")
 		return
+
+	for mission_path in [
+		"res://src/campaign/data/mission_01_first_signal.tres",
+		"res://src/campaign/data/mission_02_last_broadcast.tres",
+		"res://src/campaign/data/mission_03_blackout.tres",
+		"res://src/campaign/data/mission_04_final_signal.tres",
+	]:
+		var mission:=load(mission_path)
+		if mission==null or not bool(mission.call("is_valid_definition")):
+			_fail("Campaign mission invalid: %s" % mission_path)
+			return
 
 	player.free()
 	print("NEXORA: LAST SIGNAL offline gameplay smoke test passed")

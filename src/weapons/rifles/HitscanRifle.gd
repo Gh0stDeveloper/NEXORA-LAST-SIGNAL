@@ -24,8 +24,6 @@ var _input_source = null
 var _camera_rig = null
 var _state = RuntimeStateScript.new()
 var _shot_sequence := 0
-var _last_server_fire_sequence := 0
-var _last_server_reload_sequence := 0
 var _last_presented_sequence := 0
 var _last_dry_usec := -1000000
 var _view_model: Node3D
@@ -38,7 +36,7 @@ func _ready() -> void:
 	_camera_rig = get_node_or_null(camera_rig_path)
 	_state.configure(weapon_data)
 	ammo_changed.emit(_state.ammo_in_mag, _state.reserve_ammo)
-	if DisplayServer.get_name() != "headless" and not OS.has_feature("dedicated_server"):
+	if DisplayServer.get_name() != "headless":
 		# Weapons precede CameraRig in Player.tscn; its @onready cameras must exist.
 		call_deferred("_build_view_model")
 	if _camera_rig != null and _camera_rig.has_signal("camera_mode_changed"):
@@ -148,32 +146,6 @@ func _try_fire(now_usec: int) -> bool:
 	if _is_local_session():
 		_resolve_authoritative_hitscan(intent)
 	return true
-
-func server_try_fire(request_sequence: int, client_tick: int = 0) -> bool:
-	if not _is_simulation_authority() or not _owner_can_use_weapon() or request_sequence <= _last_server_fire_sequence:
-		return false
-	_last_server_fire_sequence = request_sequence
-	var now_usec := Time.get_ticks_usec()
-	_state.update_reload(now_usec)
-	if not _state.try_consume_shot(now_usec):
-		return false
-	var intent = _build_shot_intent(request_sequence, client_tick)
-	if intent == null:
-		return false
-	_last_presented_sequence = maxi(_last_presented_sequence, request_sequence)
-	ammo_changed.emit(_state.ammo_in_mag, _state.reserve_ammo)
-	shot_intent_created.emit(intent)
-	_resolve_authoritative_hitscan(intent)
-	return true
-
-func server_try_reload(request_sequence: int) -> bool:
-	if not _is_simulation_authority() or not _owner_can_use_weapon() or request_sequence <= _last_server_reload_sequence:
-		return false
-	_last_server_reload_sequence = request_sequence
-	var started := _state.try_start_reload(Time.get_ticks_usec())
-	if started:
-		reload_started.emit()
-	return started
 
 func start_automatic_reload() -> bool:
 	if not _is_simulation_authority() or not _owner_can_use_weapon():

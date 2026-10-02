@@ -20,7 +20,6 @@ const ProceduralWeapons = preload("res://src/assets/ProceduralWeaponModels.gd")
 var _input_source: Node
 var _camera_rig: Node
 var _attack_sequence := 0
-var _last_server_sequence := 0
 var _last_presented_sequence := 0
 var _next_attack_usec := 0
 var _view_model: Node3D
@@ -31,7 +30,7 @@ var _base_view_rotation := Vector3(deg_to_rad(18.0), deg_to_rad(-12.0), deg_to_r
 func _ready() -> void:
 	_input_source = get_node_or_null(input_path)
 	_camera_rig = get_node_or_null(camera_rig_path)
-	if DisplayServer.get_name() != "headless" and not OS.has_feature("dedicated_server"):
+	if DisplayServer.get_name() != "headless":
 		call_deferred("_build_view_model")
 	if _camera_rig != null and _camera_rig.has_signal("camera_mode_changed"):
 		_camera_rig.connect("camera_mode_changed", Callable(self, "_on_camera_mode_changed"))
@@ -48,17 +47,6 @@ func _process(_delta: float) -> void:
 func set_input_enabled(enabled: bool) -> void:
 	input_enabled = enabled
 	_refresh_view_visibility()
-
-func server_try_attack(request_sequence: int, simulation_tick: int = 0) -> bool:
-	if not _is_simulation_authority() or not _owner_can_use_weapon() or request_sequence <= _last_server_sequence:
-		return false
-	_last_server_sequence = request_sequence
-	if not _consume_cooldown():
-		return false
-	_last_presented_sequence = maxi(_last_presented_sequence, request_sequence)
-	attack_started.emit()
-	_resolve_authoritative_melee(request_sequence, simulation_tick)
-	return true
 
 func get_authoritative_state() -> Dictionary:
 	return {

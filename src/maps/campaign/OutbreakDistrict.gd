@@ -8,6 +8,9 @@ const MobileHUDScene=preload("res://src/mobile/MobileHUD.tscn")
 const HordeHUDScene=preload("res://src/horde/HordeHUD.tscn")
 const Mission1=preload("res://src/campaign/data/mission_01_first_signal.tres")
 const Mission2=preload("res://src/campaign/data/mission_02_last_broadcast.tres")
+const Mission3=preload("res://src/campaign/data/mission_03_blackout.tres")
+const Mission4=preload("res://src/campaign/data/mission_04_final_signal.tres")
+const WeaponCatalog=preload("res://src/weapons/WeaponCatalog.gd")
 const InventoryScript=preload("res://src/offline/Inventory.gd")
 const InventoryHUDScript=preload("res://src/offline/InventoryHUD.gd")
 const LootDirectorScript=preload("res://src/offline/LootDirector.gd")
@@ -21,6 +24,8 @@ const ResultScript=preload("res://src/offline/RunResultOverlay.gd")
 @export var difficulty_id:="normal"
 @export_range(0,3,1) var companion_count:=2
 @export var character_id:StringName=&"operator_01"
+@export var primary_weapon_id:StringName=&"nxr_rifle_01"
+@export var secondary_weapon_id:StringName=&"nxr_pistol_01"
 
 @onready var players_root:Node3D=$LocalPlayers
 @onready var player_spawns:Node3D=$PlayerSpawnPoints
@@ -41,7 +46,7 @@ func _ready()->void:
 	Game.start_local_session()
 	super._ready()
 	AudioDirector.set_context(&"match")
-	var selected:=Mission2 if mission_id==&"mission_02_last_broadcast" else Mission1
+	var selected:Resource=_mission_resource(mission_id)
 	campaign.set("mission",selected)
 	if horde.has_method("set_authority_override"):
 		horde.call("set_authority_override",Game.authority)
@@ -71,7 +76,9 @@ func _spawn_local_player()->void:
 	player.set("control_mode",0)
 	player.get_node("Health").set("entity_id",1)
 	player.get_node("PrimaryWeapon").set("shooter_entity_id",1)
+	player.get_node("PrimaryWeapon").set("weapon_data",WeaponCatalog.resource_for(primary_weapon_id))
 	player.get_node("SecondaryWeapon").set("shooter_entity_id",1)
+	player.get_node("SecondaryWeapon").set("weapon_data",WeaponCatalog.resource_for(secondary_weapon_id))
 	player.get_node("MacheteWeapon").set("shooter_entity_id",1)
 	var inventory:=InventoryScript.new()
 	inventory.name="Inventory"
@@ -80,6 +87,9 @@ func _spawn_local_player()->void:
 	if player_spawns.get_child_count()>0:
 		player.global_transform=(player_spawns.get_child(0) as Node3D).global_transform
 	local_player=player
+	var life:=player.get_node_or_null("LifeState")
+	if life!=null and life.has_method("configure_squad_mode"):
+		life.call("configure_squad_mode",companion_count>0)
 	if horde.has_method("register_player"):
 		horde.call("register_player",player)
 	var presenter:=player.get_node_or_null("VisualRoot/ModelPresenter")
@@ -191,3 +201,11 @@ func _show_result(summary:Dictionary)->void:
 	_result.lobby_requested.connect(func(): return_to_lobby.emit(summary))
 	add_child(_result)
 	_result.show_result(summary)
+
+
+func _mission_resource(id:StringName)->Resource:
+	match id:
+		&"mission_02_last_broadcast": return Mission2
+		&"mission_03_blackout": return Mission3
+		&"mission_04_final_signal": return Mission4
+		_: return Mission1

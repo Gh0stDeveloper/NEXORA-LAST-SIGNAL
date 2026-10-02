@@ -69,33 +69,6 @@ func get_destroyed_parts() -> Array:
 	result.sort()
 	return result
 
-func apply_replica_destroyed_parts(parts: Array) -> void:
-	if not parts.is_empty():
-		_activate_gore_ready_visual()
-	for value in parts:
-		var body_part := int(value)
-		if _is_dismemberable(body_part) and not is_limb_destroyed(body_part):
-			_apply_replica_limb(body_part)
-
-func _apply_replica_limb(body_part: int) -> void:
-	_destroyed[body_part] = true
-	var part_name := _node_name_for_part(body_part)
-	var part_path := NodePath(String(part_name))
-	var mesh := _rig.get_node_or_null(part_path) as MeshInstance3D if _rig != null else null
-	var wound := _wounds.get_node_or_null(part_path) as MeshInstance3D if _wounds != null else null
-	if mesh != null:
-		mesh.visible = false
-	if wound != null:
-		wound.visible = true
-	if _model_presenter != null and _model_presenter.has_method("apply_gore_visual"):
-		_model_presenter.call("apply_gore_visual", body_part)
-	_disable_hitbox(part_name)
-	match body_part:
-		DamageEventScript.BodyPart.LEFT_LEG, DamageEventScript.BodyPart.RIGHT_LEG:
-			crawler_required.emit(null)
-		DamageEventScript.BodyPart.LEFT_ARM, DamageEventScript.BodyPart.RIGHT_ARM:
-			attack_capability_changed.emit(get_attack_damage_multiplier(), get_attack_cooldown_multiplier())
-
 func requires_crawler() -> bool:
 	return is_limb_destroyed(DamageEventScript.BodyPart.LEFT_LEG) or is_limb_destroyed(DamageEventScript.BodyPart.RIGHT_LEG)
 

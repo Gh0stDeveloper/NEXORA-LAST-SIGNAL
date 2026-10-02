@@ -80,39 +80,6 @@ func reset_authoritative_life() -> void:
 	reviver_entity_id = 0
 	_set_state(LifeState.ALIVE, "run_reset")
 
-func set_replica_revive_progress(progress: float, reviver_id: int) -> void:
-	var next_progress := clampf(progress, 0.0, 1.0)
-	if is_equal_approx(next_progress, revive_progress) and reviver_entity_id == reviver_id:
-		return
-	revive_progress = next_progress
-	reviver_entity_id = reviver_id
-	revive_progress_changed.emit(revive_progress, reviver_entity_id)
-
-func get_network_snapshot(progress_override: float = -1.0, reviver_override: int = -1) -> Dictionary:
-	return {
-		"state": state,
-		"state_name": get_state_name(),
-		"bleedout": maxf(0.0, bleedout_remaining),
-		"revive_progress": revive_progress if progress_override < 0.0 else clampf(progress_override, 0.0, 1.0),
-		"reviver_entity_id": reviver_entity_id if reviver_override < 0 else reviver_override,
-		"bleedout_seconds": bleedout_seconds,
-		"revive_seconds": revive_hold_seconds,
-	}
-
-func apply_network_snapshot(snapshot: Dictionary) -> void:
-	if snapshot.is_empty():
-		return
-	var next_state := clampi(int(snapshot.get("state", state)), LifeState.ALIVE, LifeState.DEAD)
-	var previous := state
-	state = next_state
-	bleedout_remaining = maxf(0.0, float(snapshot.get("bleedout", bleedout_remaining)))
-	revive_progress = clampf(float(snapshot.get("revive_progress", 0.0)), 0.0, 1.0)
-	reviver_entity_id = maxi(0, int(snapshot.get("reviver_entity_id", 0)))
-	if previous != state:
-		state_changed.emit(previous, state, "network_snapshot")
-	bleedout_changed.emit(bleedout_remaining)
-	revive_progress_changed.emit(revive_progress, reviver_entity_id)
-
 func restore_authoritative_snapshot(snapshot: Dictionary) -> void:
 	if snapshot.is_empty() or not _has_simulation_authority():
 		return

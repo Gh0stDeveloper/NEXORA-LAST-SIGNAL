@@ -28,7 +28,7 @@ var _applied_msaa := int(Viewport.MSAA_DISABLED)
 var _active := false
 
 func _ready() -> void:
-	if DisplayServer.get_name() == "headless" or OS.has_feature("dedicated_server"):
+	if DisplayServer.get_name() == "headless":
 		set_process(false)
 		return
 	call_deferred("_initialize_tuner")

@@ -21,8 +21,7 @@ func _ready() -> void:
 			var cycle := preload("res://src/maps/campaign/DayNightCycle.gd").new()
 			cycle.name = "DayNightCycle"
 			add_child(cycle)
-	if not Game.is_network_client():
-		call_deferred("_build_navigation")
+	call_deferred("_build_navigation")
 
 func _configure_markers() -> void:
 	var players := get_node_or_null("PlayerSpawnPoints")

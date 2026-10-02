@@ -24,32 +24,35 @@
 - [x] Local XP/NXC/run progression.
 - [x] Strict no-network/Objetos3D audit.
 
-## 0.3 — Production gameplay pass
+## 0.3 — DEADFALL parity + offline expansion
 
-- [ ] More campaign missions using the same local objective system.
-- [ ] Additional firearm families and weapon pickups.
-- [ ] Dedicated boss archetypes/animations instead of scaled elite Tank foundation.
-- [ ] Companion revive/support roles.
-- [ ] Expanded inventory UI and equipment management.
-- [ ] More loot rarity/economy.
-- [ ] Local difficulty modifiers per mission.
-- [ ] Environmental objectives and scripted encounters.
+- [x] DEADFALL startup/loading presentation.
+- [x] DEADFALL tactical lobby converted to local formations.
+- [x] Mission 03 — Blackout.
+- [x] Mission 04 — Final Signal.
+- [x] Additional firearm families (SMG/DMR/LMG/heavy pistol).
+- [x] Persistent local loadout selection.
+- [x] Titan boss ability behavior.
+- [x] Screamer Prime summon behavior.
+- [x] Companion revive/support roles.
+- [x] Remove residual server/replica APIs from retained gameplay scripts.
+- [x] CI gate forbidding online compatibility APIs.
+
+## 0.4 — Production polish
+
+- [ ] More loot rarity/economy depth.
+- [ ] Expanded inventory/equipment presentation.
 - [ ] Additional city districts while retaining mobile budgets.
-
-## 0.4 — Presentation and optimization
-
-- [ ] Additional original LAST SIGNAL branding/iconography.
-- [ ] More operator cosmetic variants.
-- [ ] Expanded local animation library.
-- [ ] Audio mixing/pooling production pass.
-- [ ] Physical-device thermal/performance profiles.
+- [ ] Additional operator cosmetic variants.
+- [ ] Expanded animation variety for new boss behaviors.
 - [ ] Accessibility pass.
 - [ ] Save migration/regression suite.
+- [ ] Long-session thermal/performance profiling on physical Android devices.
 
 ## Release hardening
 
 - [ ] Production Android signing.
 - [ ] Release-channel workflow.
-- [ ] Long-session soak tests.
+- [ ] Long-session soak tests on physical devices.
 - [ ] Physical-device offline acceptance matrix.
 - [ ] Crash/ANR regression checks that do not require telemetry.

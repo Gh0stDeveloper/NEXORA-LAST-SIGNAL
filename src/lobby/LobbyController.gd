@@ -19,6 +19,8 @@ var selected_game_mode := "campaign"
 var selected_mode: PartyMode = PartyMode.SOLO
 var selected_difficulty := "normal"
 var selected_mission: StringName = &"mission_01_first_signal"
+var selected_primary: StringName = &"nxr_rifle_01"
+var selected_secondary: StringName = &"nxr_pistol_01"
 
 var _safe_root: Control
 var _username_label: Label
@@ -54,6 +56,8 @@ func _ready() -> void:
 	_safe_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
 	_selected_character = GuestIdentity.selected_character
+	selected_primary = GuestIdentity.selected_primary
+	selected_secondary = GuestIdentity.selected_secondary
 	_build_top_bar()
 	_build_stage()
 	_build_navigation()
@@ -285,28 +289,60 @@ func _open_character_panel() -> void:
 
 func _open_armory() -> void:
 	var box := _new_overlay("ARSENAL")
-	box.add_child(UI.label("Equipo de supervivencia almacenado localmente", 22, UI.MUTED))
+	box.add_child(UI.label("Configura el armamento inicial. El loadout queda guardado en este dispositivo.", 22, UI.MUTED))
+
 	var preview := Stage.new()
-	preview.custom_minimum_size.y = 270
+	preview.custom_minimum_size.y = 250
 	box.add_child(preview)
-	preview.show_weapon(&"nxr_rifle_01")
-	var name_label := UI.label("NXR-4  /  FUSIL DE ASALTO", 32, UI.AMBER)
+	preview.show_weapon(selected_primary)
+
+	var name_label := UI.label("", 30, UI.AMBER)
 	box.add_child(name_label)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 18)
-	box.add_child(row)
-	for item in [
-		["nxr_rifle_01", "NXR-4", "FUSIL DE ASALTO"],
-		["nxr_pistol_01", "NXR-9", "ARMA SECUNDARIA"],
-		["machete", "MACHETE", "COMBATE CUERPO A CUERPO"],
-	]:
-		var button := UI.button(item[1], func() -> void:
-			preview.show_weapon(StringName(item[0]))
-			name_label.text = "%s  /  %s" % [item[1], item[2]]
-		, false, "rifle")
+
+	var WeaponCatalog := preload("res://src/weapons/WeaponCatalog.gd")
+	var primary_label := UI.label("ARMA PRINCIPAL", 22, UI.CYAN)
+	box.add_child(primary_label)
+	var primary_row := HBoxContainer.new()
+	primary_row.add_theme_constant_override("separation", 10)
+	box.add_child(primary_row)
+	for definition in WeaponCatalog.all_for_slot("primary"):
+		var id := StringName(definition.id)
+		var button := UI.button(String(definition.name), func() -> void:
+			selected_primary = id
+			GuestIdentity.set_loadout(selected_primary, selected_secondary)
+			preview.show_weapon(id)
+			name_label.text = "%s  /  %s" % [String(definition.name), String(definition.role)]
+		, id == selected_primary, "rifle")
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		row.add_child(button)
-	box.add_child(UI.label("El inventario y el loot se procesan y guardan solo en este dispositivo.", 20, UI.MUTED))
+		primary_row.add_child(button)
+
+	var secondary_label := UI.label("ARMA SECUNDARIA", 22, UI.CYAN)
+	box.add_child(secondary_label)
+	var secondary_row := HBoxContainer.new()
+	secondary_row.add_theme_constant_override("separation", 10)
+	box.add_child(secondary_row)
+	for definition in WeaponCatalog.all_for_slot("secondary"):
+		var id := StringName(definition.id)
+		var button := UI.button(String(definition.name), func() -> void:
+			selected_secondary = id
+			GuestIdentity.set_loadout(selected_primary, selected_secondary)
+			preview.show_weapon(id)
+			name_label.text = "%s  /  %s" % [String(definition.name), String(definition.role)]
+		, id == selected_secondary, "rifle")
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		secondary_row.add_child(button)
+
+	var melee := UI.button("MACHETE", func() -> void:
+		preview.show_weapon(&"machete")
+		name_label.text = "MACHETE  /  COMBATE CUERPO A CUERPO"
+	, false, "rifle")
+	box.add_child(melee)
+	var current := WeaponCatalog.get_definition(selected_primary)
+	name_label.text = "%s  /  %s" % [String(current.name), String(current.role)]
+	box.add_child(UI.label("Principal: %s   ·   Secundaria: %s   ·   Machete siempre disponible." % [
+		String(WeaponCatalog.get_definition(selected_primary).name),
+		String(WeaponCatalog.get_definition(selected_secondary).name)
+	], 20, UI.MUTED))
 
 func _open_difficulty() -> void:
 	var box := _new_overlay("DIFICULTAD")
@@ -406,8 +442,10 @@ func _open_mode_picker() -> void:
 		for mission in [
 			[&"mission_01_first_signal","MISIÓN 01 · PRIMERA SEÑAL"],
 			[&"mission_02_last_broadcast","MISIÓN 02 · ÚLTIMA TRANSMISIÓN"],
+			[&"mission_03_blackout","MISIÓN 03 · BLACKOUT"],
+			[&"mission_04_final_signal","MISIÓN 04 · SEÑAL FINAL"],
 		]:
-			var selected := selected_mission == mission[0]
+			var selected: bool = selected_mission == StringName(mission[0])
 			var button := UI.button(mission[1], _select_mission.bind(mission[0]), selected)
 			button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			mission_row.add_child(button)
@@ -495,7 +533,13 @@ func _refresh_mode() -> void:
 	_game_mode_button.text = "%s  ›" % preload("res://src/modes/ModeCatalog.gd").find(selected_game_mode).get("title","CAMPAÑA")
 	_difficulty_button.text = selected_difficulty.to_upper()
 	_briefing_tag.text = "OFFLINE"
-	_briefing_title.text = {"campaign":"PRIMERA\nSEÑAL" if selected_mission == &"mission_01_first_signal" else "ÚLTIMA\nTRANSMISIÓN","waves":"ASALTO\n10 OLEADAS","endless":"RESISTENCIA\nINFINITA"}.get(selected_game_mode,"OPERACIÓN")
+	var campaign_title := {
+		&"mission_01_first_signal":"PRIMERA\nSEÑAL",
+		&"mission_02_last_broadcast":"ÚLTIMA\nTRANSMISIÓN",
+		&"mission_03_blackout":"BLACKOUT",
+		&"mission_04_final_signal":"SEÑAL\nFINAL",
+	}.get(selected_mission,"CAMPAÑA")
+	_briefing_title.text = campaign_title if selected_game_mode == "campaign" else {"waves":"ASALTO\n10 OLEADAS","endless":"RESISTENCIA\nINFINITA"}.get(selected_game_mode,"OPERACIÓN")
 	_update_local_party()
 
 func _update_local_party() -> void:
@@ -565,6 +609,8 @@ func _on_start_pressed() -> void:
 		"companions":maxi(0,int(selected_mode)-1),
 		"mission_id":selected_mission,
 		"character_id":_selected_character,
+		"primary_weapon_id":selected_primary,
+		"secondary_weapon_id":selected_secondary,
 	}
 	start_requested.emit(config)
 	_start_operation(config)
@@ -588,6 +634,8 @@ func _start_operation(config: Dictionary) -> void:
 	_arena.set("difficulty_id",String(config.get("difficulty","normal")))
 	_arena.set("companion_count",int(config.get("companions",0)))
 	_arena.set("character_id",StringName(config.get("character_id",&"operator_01")))
+	_arena.set("primary_weapon_id",StringName(config.get("primary_weapon_id",&"nxr_rifle_01")))
+	_arena.set("secondary_weapon_id",StringName(config.get("secondary_weapon_id",&"nxr_pistol_01")))
 	_arena.connect("return_to_lobby",Callable(self,"_on_return_to_lobby"))
 	add_child(_arena)
 	_loading.complete()

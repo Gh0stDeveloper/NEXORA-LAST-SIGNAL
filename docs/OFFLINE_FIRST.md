@@ -55,3 +55,8 @@ The separate `Gh0stDeveloper/Objetos3D` repository is excluded. Neither its vend
 ## Enforcement
 
 `tools/verify_offline.py` checks API tokens, forbidden paths, forbidden directories and Android permissions on every CI run.
+
+
+## Removed compatibility surface
+
+The offline port also rejects dormant online compatibility APIs inside runtime scripts. CI fails on server-action handlers, network snapshots, replica presentation hooks, dedicated-server branches, network session nodes, social clients and telemetry references. This prevents online architecture from silently returning even when no socket is opened.

@@ -20,7 +20,7 @@ func _ready() -> void:
 			AudioServer.set_bus_name(index, bus)
 			AudioServer.set_bus_send(index, "Master")
 	Settings.apply_audio_settings()
-	_enabled = DisplayServer.get_name() != "headless" and not OS.has_feature("dedicated_server") and "--server" not in OS.get_cmdline_user_args()
+	_enabled = DisplayServer.get_name() != "headless"
 	if not _enabled:
 		return
 	var limiter := AudioEffectLimiter.new()

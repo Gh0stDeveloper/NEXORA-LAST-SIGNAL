@@ -184,27 +184,6 @@ func restart_run() -> bool:
 		run_restarted.emit()
 	return started
 
-func apply_replica_snapshot(snapshot: Dictionary) -> void:
-	if has_simulation_authority() or snapshot.is_empty():
-		return
-	var previous := state
-	state = int(snapshot.get("state", state))
-	wave_number = int(snapshot.get("wave", wave_number))
-	score = int(snapshot.get("score", score))
-	kills = int(snapshot.get("kills", kills))
-	wave_total_enemies = int(snapshot.get("wave_total", wave_total_enemies))
-	wave_spawned = int(snapshot.get("wave_spawned", wave_spawned))
-	wave_killed = int(snapshot.get("wave_killed", wave_killed))
-	_current_population_cost = int(snapshot.get("active_population_cost", _current_population_cost))
-	_phase_time_remaining = float(snapshot.get("countdown", 0))
-	if previous != state:
-		state_changed.emit(previous, state, "network_snapshot")
-	_emit_score()
-	population_changed.emit(int(snapshot.get("active_zombies", 0)), _current_population_cost, int(snapshot.get("population_budget", get_population_budget())), int(snapshot.get("enemies_remaining", 0)))
-	countdown_changed.emit(int(snapshot.get("countdown", 0)), 1 if state == State.COUNTDOWN else wave_number + 1)
-	if state == State.GAME_OVER:
-		game_over.emit(wave_number, score, kills)
-
 func get_state_name() -> String:
 	return State.keys()[state]
 

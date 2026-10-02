@@ -95,9 +95,6 @@ func configure_local_identity(entity_id: int = 1) -> void:
 		if weapon != null and weapon.get("shooter_entity_id") != null:
 			weapon.set("shooter_entity_id",entity_id)
 
-func configure_network_identity(entity_id: int, _mode: int = 0) -> void:
-	configure_local_identity(entity_id)
-
 func can_use_weapon() -> bool:
 	return life_state == null or bool(life_state.call("can_use_weapon"))
 

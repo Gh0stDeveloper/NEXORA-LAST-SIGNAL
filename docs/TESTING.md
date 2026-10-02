@@ -25,7 +25,10 @@ The gameplay smoke validates:
 - horde scaling works;
 - only offline modes are active;
 - external Objetos3D models cannot resolve;
-- campaign checkpoint save/restore works.
+- campaign checkpoint save/restore works;
+- all four campaign mission resources are valid;
+- the expanded local weapon catalog resolves at least four primary and two secondary weapons;
+- the DEADFALL lobby structure exists.
 
 ### Android Debug Build
 
@@ -59,3 +62,8 @@ Test with airplane mode enabled:
 - death/result/lobby flow;
 - relaunch and progress persistence;
 - confirm Android does not request Internet permission.
+
+
+## 0.3 validation additions
+
+The recursive script smoke compiles every `.gd` under `src/`. The static auditor additionally rejects legacy remote gameplay APIs such as `server_try_*`, `apply_network_snapshot`, `get_network_snapshot`, `apply_replica_*`, dedicated-server checks and online session references.

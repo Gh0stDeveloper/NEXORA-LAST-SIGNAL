@@ -1,17 +1,21 @@
-; Engine configuration file.
-; NEXORA: LAST SIGNAL — offline/local survival prototype
+; NEXORA: LAST SIGNAL — DEADFALL offline port
 config_version=5
 
 [application]
 config/name="NEXORA: LAST SIGNAL"
-config/version="0.1.0-alpha.1"
-config/description="100% local offline zombie survival shooter by Ghost Developer / Nexora"
+config/version="0.2.0-alpha.1"
+config/description="Offline edition of the NEXORA: DEADFALL gameplay experience"
 run/main_scene="res://src/main/Boot.tscn"
 config/features=PackedStringArray("4.6", "Mobile")
 
 [autoload]
-SaveSystem="*res://src/autoload/SaveSystem.gd"
-GameState="*res://src/autoload/GameState.gd"
+Game="*res://src/autoload/Game.gd"
+Settings="*res://src/autoload/Settings.gd"
+AudioDirector="*res://src/audio/AudioDirector.gd"
+PerformanceTuner="*res://src/mobile/MobilePerformanceTuner.gd"
+GuestIdentity="*res://src/identity/GuestIdentity.gd"
+Gore="*res://src/gore/GoreManager.gd"
+Progress="*res://src/offline/ProgressStore.gd"
 
 [display]
 window/size/viewport_width=1920

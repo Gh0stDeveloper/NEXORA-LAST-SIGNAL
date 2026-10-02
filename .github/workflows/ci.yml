@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, offline-deadfall-port]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -15,9 +15,9 @@ env:
 
 jobs:
   validate:
-    name: Offline + Godot validation
+    name: Offline DEADFALL port validation
     runs-on: ubuntu-24.04
-    timeout-minutes: 8
+    timeout-minutes: 12
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -27,10 +27,10 @@ jobs:
         with:
           python-version: "3.13"
 
-      - name: Validate Python tooling
+      - name: Validate audit tooling
         run: python -m py_compile tools/verify_offline.py
 
-      - name: Enforce offline contract
+      - name: Enforce strict offline contract
         run: python tools/verify_offline.py
 
       - name: Install Godot 4.6.3
@@ -43,15 +43,15 @@ jobs:
       - name: Verify Godot version
         run: godot --version
 
-      - name: Import project and parse resources
-        run: timeout 60s godot --headless --editor --path . --quit
+      - name: Import project and compile resources
+        run: timeout 120s godot --headless --editor --path . --quit
 
       - name: Run project smoke test
         env:
           XDG_DATA_HOME: ${{ runner.temp }}/last-signal-smoke
-        run: timeout 60s godot --headless --path . --script scripts/ci/smoke.gd
+        run: timeout 90s godot --headless --path . --script scripts/ci/smoke.gd
 
-      - name: Run gameplay smoke test
+      - name: Run offline gameplay smoke test
         env:
           XDG_DATA_HOME: ${{ runner.temp }}/last-signal-gameplay
-        run: timeout 60s godot --headless --path . --script scripts/ci/gameplay_smoke.gd
+        run: timeout 90s godot --headless --path . --script scripts/ci/gameplay_smoke.gd

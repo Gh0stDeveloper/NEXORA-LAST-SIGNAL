@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/Gh0stDeveloper/NEXORA-LAST-SIGNAL/actions/workflows/ci.yml/badge.svg)](https://github.com/Gh0stDeveloper/NEXORA-LAST-SIGNAL/actions/workflows/ci.yml)
 [![Android Debug Build](https://github.com/Gh0stDeveloper/NEXORA-LAST-SIGNAL/actions/workflows/android-debug.yml/badge.svg)](https://github.com/Gh0stDeveloper/NEXORA-LAST-SIGNAL/actions/workflows/android-debug.yml)
+[![Public Android Release](https://github.com/Gh0stDeveloper/NEXORA-LAST-SIGNAL/actions/workflows/release.yml/badge.svg)](https://github.com/Gh0stDeveloper/NEXORA-LAST-SIGNAL/actions/workflows/release.yml)
 ![Godot](https://img.shields.io/badge/Godot-4.6.3-478CBF?logo=godot-engine&logoColor=white)
 ![Android](https://img.shields.io/badge/Android-ARM64-3DDC84?logo=android&logoColor=white)
 ![Offline](https://img.shields.io/badge/runtime-100%25%20offline-111827)
@@ -362,9 +363,11 @@ Target:
 - Godot Mobile renderer
 - package `com.nexora.lastsignal`
 
-The debug workflow installs Godot 4.6.3 export templates, Android tooling and JDK 17, exports the APK, signs it with an ephemeral CI key, verifies its signature and uploads it as a workflow artifact.
+The debug workflow installs Godot 4.6.3 export templates, Android tooling and JDK 17, exports the APK, signs it with an ephemeral CI key and validates V1/V2/V3/V4 signing.
 
-No production keystore is stored in this repository.
+Public builds use `.github/workflows/release.yml`. The release workflow exports an ARM64 APK, aligns it before signing, signs it with a persistent key from GitHub Actions Secrets, verifies APK Signature Schemes V1, V2, V3 and V4, and publishes the APK plus its V4 `.idsig`, checksums and release manifest to GitHub Releases.
+
+The release keystore itself is never stored in this repository. See [docs/RELEASES.md](docs/RELEASES.md).
 
 ## Controls
 

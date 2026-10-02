@@ -1,0 +1,283 @@
+name: Public Android Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      publish_release:
+        description: Publish/update the public GitHub Release after validation
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+
+concurrency:
+  group: public-android-release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  GODOT_VERSION: "4.6.3"
+
+jobs:
+  android-release:
+    name: Build, sign and publish Android APK
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Resolve release identity
+        id: release
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="$(tr -d '[:space:]' < VERSION)"
+          test -n "$VERSION"
+          VERSION_CODE="$(grep -m1 -oP 'version/code=\K[0-9]+' export_presets.cfg)"
+          test -n "$VERSION_CODE"
+          grep -Fq "config/version=\"$VERSION\"" project.godot
+          grep -Fq "version/name=\"$VERSION\"" export_presets.cfg
+          TAG="v$VERSION"
+
+          if [[ "${GITHUB_REF_TYPE:-}" == "tag" && "$GITHUB_REF_NAME" != "$TAG" ]]; then
+            echo "Tag $GITHUB_REF_NAME does not match VERSION ($TAG)." >&2
+            exit 1
+          fi
+
+          if [[ "$VERSION" == *-* ]]; then
+            PRERELEASE=true
+          else
+            PRERELEASE=false
+          fi
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "version_code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "prerelease=$PRERELEASE" >> "$GITHUB_OUTPUT"
+          echo "LAST_SIGNAL_VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "LAST_SIGNAL_VERSION_CODE=$VERSION_CODE" >> "$GITHUB_ENV"
+
+      - name: Validate offline runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile tools/verify_offline.py
+          python3 tools/verify_offline.py
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4.0.4
+
+      - name: Install Android 36 build tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Install Godot and export templates
+        uses: chickensoft-games/setup-godot@v2.4.2
+        with:
+          version: "4.6.3"
+          use-dotnet: false
+          include-templates: true
+
+      - name: Configure Android SDK paths for Godot
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.config/godot"
+          cat > "$HOME/.config/godot/editor_settings-4.tres" <<EOF2
+          [gd_resource type="EditorSettings" format=3]
+
+          [resource]
+          export/android/android_sdk_path = "$ANDROID_HOME"
+          export/android/java_sdk_path = "$JAVA_HOME"
+          EOF2
+
+      - name: Validate persistent release signing key
+        shell: bash
+        env:
+          KEYSTORE_B64: ${{ secrets.LAST_SIGNAL_ANDROID_KEYSTORE_B64 }}
+          KEY_ALIAS: ${{ secrets.LAST_SIGNAL_ANDROID_KEYSTORE_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.LAST_SIGNAL_ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test -n "$KEYSTORE_B64" || { echo "Missing LAST_SIGNAL_ANDROID_KEYSTORE_B64" >&2; exit 1; }
+          test -n "$KEY_ALIAS" || { echo "Missing LAST_SIGNAL_ANDROID_KEYSTORE_ALIAS" >&2; exit 1; }
+          test -n "$KEY_PASSWORD" || { echo "Missing LAST_SIGNAL_ANDROID_KEYSTORE_PASSWORD" >&2; exit 1; }
+          printf '%s' "$KEYSTORE_B64" | base64 --decode > /tmp/nexora-last-signal-release.jks
+          chmod 600 /tmp/nexora-last-signal-release.jks
+          keytool -list             -keystore /tmp/nexora-last-signal-release.jks             -storepass "$KEY_PASSWORD"             -alias "$KEY_ALIAS" >/dev/null
+
+      - name: Import project
+        shell: bash
+        run: |
+          set -euo pipefail
+          godot --headless --editor --path . --quit
+
+      - name: Run release smoke tests
+        shell: bash
+        env:
+          XDG_DATA_HOME: ${{ runner.temp }}/last-signal-release-smoke
+        run: |
+          set -euo pipefail
+          timeout 90s godot --headless --path . --script scripts/ci/smoke.gd
+          timeout 90s godot --headless --path . --script scripts/ci/gameplay_smoke.gd
+
+      - name: Export unsigned release APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/android
+          godot --verbose --headless --path .             --export-release "Android Release"             "build/android/NEXORA-LAST-SIGNAL-${LAST_SIGNAL_VERSION}-unsigned.apk"
+          test -s "build/android/NEXORA-LAST-SIGNAL-${LAST_SIGNAL_VERSION}-unsigned.apk"
+
+      - name: Sign APK with V1, V2, V3 and V4
+        shell: bash
+        env:
+          APK_SIGNING_PASSWORD: ${{ secrets.LAST_SIGNAL_ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.LAST_SIGNAL_ANDROID_KEYSTORE_ALIAS }}
+        run: |
+          set -euo pipefail
+          bash scripts/ci/sign_apk.sh             "build/android/NEXORA-LAST-SIGNAL-${LAST_SIGNAL_VERSION}-unsigned.apk"             "build/android/NEXORA-LAST-SIGNAL-${LAST_SIGNAL_VERSION}.apk"             /tmp/nexora-last-signal-release.jks             "$KEY_ALIAS"
+          rm -f "build/android/NEXORA-LAST-SIGNAL-${LAST_SIGNAL_VERSION}-unsigned.apk"
+
+      - name: Create checksums and release manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="build/android/NEXORA-LAST-SIGNAL-${LAST_SIGNAL_VERSION}.apk"
+          IDSIG="$APK.idsig"
+          REPORT="build/android/NEXORA-LAST-SIGNAL-${LAST_SIGNAL_VERSION}-signatures.txt"
+
+          (cd build/android && sha256sum             "NEXORA-LAST-SIGNAL-${LAST_SIGNAL_VERSION}.apk"             "NEXORA-LAST-SIGNAL-${LAST_SIGNAL_VERSION}.apk.idsig"             "NEXORA-LAST-SIGNAL-${LAST_SIGNAL_VERSION}-signatures.txt"             > SHA256SUMS.txt)
+
+          CERT_SHA256="$(awk -F': ' '/Signer #1 certificate SHA-256 digest:/{print $2; exit}' "$REPORT")"
+          export CERT_SHA256
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib
+
+          root = pathlib.Path("build/android")
+          version = os.environ["LAST_SIGNAL_VERSION"]
+          files = [
+              root / f"NEXORA-LAST-SIGNAL-{version}.apk",
+              root / f"NEXORA-LAST-SIGNAL-{version}.apk.idsig",
+              root / f"NEXORA-LAST-SIGNAL-{version}-signatures.txt",
+          ]
+          artifacts = []
+          for path in files:
+              data = path.read_bytes()
+              artifacts.append({
+                  "file": path.name,
+                  "bytes": len(data),
+                  "sha256": hashlib.sha256(data).hexdigest(),
+              })
+
+          manifest = {
+              "app": "NEXORA: LAST SIGNAL",
+              "package": "com.nexora.lastsignal",
+              "app_version": version,
+              "version_code": int(os.environ["LAST_SIGNAL_VERSION_CODE"]),
+              "git_sha": os.environ["GITHUB_SHA"],
+              "target_android_api": 36,
+              "architecture": ["arm64-v8a"],
+              "offline_runtime": True,
+              "signing": {
+                  "v1": True,
+                  "v2": True,
+                  "v3": True,
+                  "v4": True,
+                  "certificate_sha256": os.environ.get("CERT_SHA256", ""),
+              },
+              "artifacts": artifacts,
+          }
+          (root / "release-manifest.json").write_text(
+              json.dumps(manifest, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+          {
+            echo "# NEXORA: LAST SIGNAL ${LAST_SIGNAL_VERSION}"
+            echo
+            echo "Android ARM64 public release."
+            echo
+            echo "## Download"
+            echo
+            echo "Install **NEXORA-LAST-SIGNAL-${LAST_SIGNAL_VERSION}.apk**."
+            echo
+            echo "The accompanying **.idsig** is the detached APK Signature Scheme V4 file used for Android incremental installation; normal installation only needs the APK."
+            echo
+            echo "## Signing"
+            echo
+            echo "- APK Signature Scheme V1: verified"
+            echo "- APK Signature Scheme V2: verified"
+            echo "- APK Signature Scheme V3: verified"
+            echo "- APK Signature Scheme V4: verified (.idsig)"
+            echo
+            echo "Certificate SHA-256: `$CERT_SHA256`"
+            echo
+            echo "## Changes"
+            echo
+            awk -v wanted="## ${LAST_SIGNAL_VERSION}" '
+              $0 == wanted {found=1; next}
+              found && /^## / {exit}
+              found {print}
+            ' CHANGELOG.md
+          } > build/android/RELEASE_NOTES.md
+
+          cat build/android/release-manifest.json
+          cat build/android/SHA256SUMS.txt
+
+      - name: Upload validated release bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: NEXORA-LAST-SIGNAL-${{ steps.release.outputs.version }}
+          path: |
+            build/android/NEXORA-LAST-SIGNAL-${{ steps.release.outputs.version }}.apk
+            build/android/NEXORA-LAST-SIGNAL-${{ steps.release.outputs.version }}.apk.idsig
+            build/android/NEXORA-LAST-SIGNAL-${{ steps.release.outputs.version }}-signatures.txt
+            build/android/SHA256SUMS.txt
+            build/android/release-manifest.json
+            build/android/RELEASE_NOTES.md
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish public GitHub Release
+        if: ${{ github.event_name == 'push' || inputs.publish_release }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+          IS_PRERELEASE: ${{ steps.release.outputs.prerelease }}
+        run: |
+          set -euo pipefail
+          ASSETS=(
+            "build/android/NEXORA-LAST-SIGNAL-${LAST_SIGNAL_VERSION}.apk"
+            "build/android/NEXORA-LAST-SIGNAL-${LAST_SIGNAL_VERSION}.apk.idsig"
+            "build/android/NEXORA-LAST-SIGNAL-${LAST_SIGNAL_VERSION}-signatures.txt"
+            "build/android/SHA256SUMS.txt"
+            "build/android/release-manifest.json"
+          )
+
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "${ASSETS[@]}"               --repo "$GITHUB_REPOSITORY"               --clobber
+            gh release edit "$RELEASE_TAG"               --repo "$GITHUB_REPOSITORY"               --title "NEXORA: LAST SIGNAL ${LAST_SIGNAL_VERSION}"               --notes-file build/android/RELEASE_NOTES.md
+          else
+            EXTRA_FLAGS=()
+            if [[ "$IS_PRERELEASE" == "true" ]]; then
+              EXTRA_FLAGS+=(--prerelease)
+            fi
+            gh release create "$RELEASE_TAG" "${ASSETS[@]}"               --repo "$GITHUB_REPOSITORY"               --target "$GITHUB_SHA"               --title "NEXORA: LAST SIGNAL ${LAST_SIGNAL_VERSION}"               --notes-file build/android/RELEASE_NOTES.md               "${EXTRA_FLAGS[@]}"
+          fi

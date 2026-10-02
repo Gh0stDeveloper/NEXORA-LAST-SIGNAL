@@ -2,6 +2,13 @@
 
 ## 0.3.0-alpha.1
 
+### Distribution
+
+- Added public GitHub Release automation for Android.
+- Added persistent release-signing contract through GitHub Actions Secrets.
+- Added explicit APK Signature Scheme V1, V2, V3 and V4 signing and verification.
+- Added V4 `.idsig`, SHA-256 checksums, signature report and release manifest assets.
+
 ### DEADFALL parity and offline expansion
 
 - Restored the DEADFALL asynchronous splash/loading presentation for LAST SIGNAL.

@@ -74,8 +74,10 @@ jobs:
           godot --verbose --headless --path . --export-debug "Android Debug" build/android/NEXORA-LAST-SIGNAL-debug-unsigned.apk
           test -s build/android/NEXORA-LAST-SIGNAL-debug-unsigned.apk
 
-      - name: Sign APK with ephemeral CI key
+      - name: Sign APK with ephemeral CI key using V1/V2/V3/V4
         shell: bash
+        env:
+          APK_SIGNING_PASSWORD: android
         run: |
           set -euo pipefail
           keytool -genkeypair -noprompt \
@@ -87,21 +89,20 @@ jobs:
             -keysize 2048 \
             -validity 2 \
             -dname "CN=NEXORA LAST SIGNAL Debug,O=Ghost Developer,C=MX"
-          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
-          test -x "$APKSIGNER"
-          "$APKSIGNER" sign \
-            --ks /tmp/nexora-last-signal-debug.keystore \
-            --ks-pass pass:android \
-            --key-pass pass:android \
-            --out build/android/NEXORA-LAST-SIGNAL-debug.apk \
-            build/android/NEXORA-LAST-SIGNAL-debug-unsigned.apk
-          "$APKSIGNER" verify --verbose --print-certs build/android/NEXORA-LAST-SIGNAL-debug.apk
-          test -s build/android/NEXORA-LAST-SIGNAL-debug.apk
+          bash scripts/ci/sign_apk.sh \
+            build/android/NEXORA-LAST-SIGNAL-debug-unsigned.apk \
+            build/android/NEXORA-LAST-SIGNAL-debug.apk \
+            /tmp/nexora-last-signal-debug.keystore \
+            nexora-last-signal-debug
+          rm -f build/android/NEXORA-LAST-SIGNAL-debug-unsigned.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: NEXORA-LAST-SIGNAL-android-debug
-          path: build/android/NEXORA-LAST-SIGNAL-debug.apk
+          path: |
+            build/android/NEXORA-LAST-SIGNAL-debug.apk
+            build/android/NEXORA-LAST-SIGNAL-debug.apk.idsig
+            build/android/NEXORA-LAST-SIGNAL-debug-signatures.txt
           if-no-files-found: error
           retention-days: 14

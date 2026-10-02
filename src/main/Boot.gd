@@ -1,56 +1,62 @@
-extends Node
+extends Control
 
-const LobbyScene=preload("res://src/lobby/Lobby.tscn")
-const ArenaScene=preload("res://src/maps/campaign/OutbreakDistrict.tscn")
-const LoadingScript=preload("res://src/ui/MatchLoadingOverlay.gd")
+const LOBBY_PATH := "res://src/lobby/Lobby.tscn"
+const UI = preload("res://src/ui/TacticalTheme.gd")
+const Backdrop = preload("res://src/ui/TacticalBackdrop.gd")
 
-var lobby:Control
-var arena:Node3D
-var loading:CanvasLayer
+var _bar: ProgressBar
+var _status: Label
+var _started := false
+var _retry: Button
 
-func _ready()->void:
-	process_mode=Node.PROCESS_MODE_ALWAYS
-	Game.start_local_session()
-	_show_lobby()
+func _ready() -> void:
+	get_tree().quit_on_go_back = false
+	if DisplayServer.get_name() == "headless":
+		get_tree().change_scene_to_file.call_deferred(LOBBY_PATH)
+		return
+	UI.apply(self)
+	add_child(Backdrop.new())
+	UI.place(UI.label("N E X O R A", 32, UI.AMBER), self, Rect2(0.06, 0.45, 0.8, 0.06))
+	UI.place(UI.label("LAST SIGNAL", 96), self, Rect2(0.055, 0.50, 0.8, 0.17))
+	_status = UI.label("PREPARANDO RECURSOS OFFLINE", 26, UI.MUTED)
+	UI.place(_status, self, Rect2(0.06, 0.82, 0.8, 0.05))
+	_bar = ProgressBar.new()
+	_bar.show_percentage = false
+	UI.place(_bar, self, Rect2(0.06, 0.89, 0.88, 0.009))
+	await RenderingServer.frame_post_draw
+	_start_load()
 
-func _show_lobby()->void:
-	get_tree().paused=false
-	Input.mouse_mode=Input.MOUSE_MODE_VISIBLE
-	AudioDirector.set_context(&"lobby")
-	if lobby!=null and is_instance_valid(lobby):
-		lobby.queue_free()
-	lobby=LobbyScene.instantiate()
-	lobby.start_requested.connect(_start_operation)
-	add_child(lobby)
+func _start_load() -> void:
+	if _started:
+		return
+	if is_instance_valid(_retry):
+		_retry.hide()
+	_status.text = "PREPARANDO RECURSOS OFFLINE"
+	var error := ResourceLoader.load_threaded_request(LOBBY_PATH, "PackedScene", true)
+	if error != OK:
+		_show_error()
+		return
+	_started = true
 
-func _start_operation(config:Dictionary)->void:
-	if lobby!=null and is_instance_valid(lobby):
-		lobby.queue_free()
-		lobby=null
-	loading=LoadingScript.new()
-	add_child(loading)
-	loading.begin("")
-	loading.set_stage("Cargando ciudad y sistemas locales…",0.45)
-	call_deferred("_spawn_operation",config)
+func _process(_delta: float) -> void:
+	if not _started:
+		return
+	var progress: Array = []
+	var status := ResourceLoader.load_threaded_get_status(LOBBY_PATH, progress)
+	if not progress.is_empty():
+		_bar.value = float(progress[0]) * 100.0
+	if status == ResourceLoader.THREAD_LOAD_LOADED:
+		_started = false
+		var scene := ResourceLoader.load_threaded_get(LOBBY_PATH) as PackedScene
+		if scene == null or get_tree().change_scene_to_packed(scene) != OK:
+			_show_error()
+	elif status in [ResourceLoader.THREAD_LOAD_FAILED, ResourceLoader.THREAD_LOAD_INVALID_RESOURCE]:
+		_started = false
+		_show_error()
 
-func _spawn_operation(config:Dictionary)->void:
-	await get_tree().process_frame
-	Game.start_local_session()
-	arena=ArenaScene.instantiate() as Node3D
-	arena.set("game_mode",String(config.get("mode","campaign")))
-	arena.set("mission_id",StringName(config.get("mission_id",&"mission_01_first_signal")))
-	arena.set("difficulty_id",String(config.get("difficulty","normal")))
-	arena.set("companion_count",int(config.get("companions",2)))
-	arena.set("character_id",StringName(config.get("character_id",&"operator_01")))
-	arena.connect("return_to_lobby",Callable(self,"_on_return_to_lobby"))
-	add_child(arena)
-	if loading!=null and is_instance_valid(loading):
-		loading.complete()
-		loading.queue_free()
-		loading=null
-
-func _on_return_to_lobby(_summary:Dictionary={}) ->void:
-	if arena!=null and is_instance_valid(arena):
-		arena.queue_free()
-	arena=null
-	call_deferred("_show_lobby")
+func _show_error() -> void:
+	_status.text = "NO SE PUDIERON CARGAR LOS RECURSOS LOCALES."
+	if not is_instance_valid(_retry):
+		_retry = UI.button("REINTENTAR", _start_load, true)
+		UI.place(_retry, self, Rect2(0.70, 0.78, 0.24, 0.075))
+	_retry.show()

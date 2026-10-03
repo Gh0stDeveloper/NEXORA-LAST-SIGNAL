@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.0.0rc
+
+### Lobby, loading and branding release candidate
+
+- Added a guaranteed visible DEADFALL-style loading transition before every match.
+- Added loading briefing details for mode, mission, difficulty and local AI formation.
+- Pauses the arena while the loading transition finishes, preventing gameplay from starting behind the overlay.
+- Added persistent quick-select buttons for Campaign, Assault and Endless directly in the lobby.
+- Added a MODOS navigation entry and retained the full visual mode picker with artwork.
+- Enhanced the lobby background with the DEADFALL quarantine hangar presentation, stronger tactical overlays and version information.
+- Added a dedicated LAST SIGNAL application icon and wired it through `project.godot`.
+- Promoted public-facing version name to `1.0.0rc`.
+- Replaced the old Android version code with the simpler internal code `10000`.
+- Updated GitHub Release prerelease detection so `rc` versions remain prereleases.
+- Reworked the README into a release-candidate quality project overview.
+
 ## 0.3.0-alpha.1
 
 ### Distribution

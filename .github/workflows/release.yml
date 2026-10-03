@@ -53,7 +53,7 @@ jobs:
             exit 1
           fi
 
-          if [[ "$VERSION" == *-* ]]; then
+          if [[ "$VERSION" == *-* || "$VERSION" =~ (alpha|beta|rc) ]]; then
             PRERELEASE=true
           else
             PRERELEASE=false

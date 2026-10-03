@@ -1,185 +1,121 @@
-# NEXORA: LAST SIGNAL
+<p align="center">
+  <img src="assets/branding/last_signal_icon.svg" width="160" alt="NEXORA: LAST SIGNAL icon">
+</p>
 
-[![CI](https://github.com/Gh0stDeveloper/NEXORA-LAST-SIGNAL/actions/workflows/ci.yml/badge.svg)](https://github.com/Gh0stDeveloper/NEXORA-LAST-SIGNAL/actions/workflows/ci.yml)
-[![Android Debug Build](https://github.com/Gh0stDeveloper/NEXORA-LAST-SIGNAL/actions/workflows/android-debug.yml/badge.svg)](https://github.com/Gh0stDeveloper/NEXORA-LAST-SIGNAL/actions/workflows/android-debug.yml)
-[![Public Android Release](https://github.com/Gh0stDeveloper/NEXORA-LAST-SIGNAL/actions/workflows/release.yml/badge.svg)](https://github.com/Gh0stDeveloper/NEXORA-LAST-SIGNAL/actions/workflows/release.yml)
-![Godot](https://img.shields.io/badge/Godot-4.6.3-478CBF?logo=godot-engine&logoColor=white)
-![Android](https://img.shields.io/badge/Android-ARM64-3DDC84?logo=android&logoColor=white)
-![Offline](https://img.shields.io/badge/runtime-100%25%20offline-111827)
+<h1 align="center">NEXORA: LAST SIGNAL</h1>
 
-**NEXORA: LAST SIGNAL** is the offline edition/port of the gameplay experience developed for **NEXORA: DEADFALL**. Instead of reproducing DEADFALL approximately, this repository reuses its local gameplay, presentation, campaign, city, HUD, combat, zombie, audio, gore and operator systems while removing the online architecture.
+<p align="center">
+  <strong>The DEADFALL survival experience rebuilt as a complete local/offline Android game.</strong>
+</p>
 
-The permanent runtime rule is simple:
+<p align="center">
+  <a href="https://github.com/Gh0stDeveloper/NEXORA-LAST-SIGNAL/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/Gh0stDeveloper/NEXORA-LAST-SIGNAL/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="https://github.com/Gh0stDeveloper/NEXORA-LAST-SIGNAL/actions/workflows/android-debug.yml"><img alt="Android Build" src="https://github.com/Gh0stDeveloper/NEXORA-LAST-SIGNAL/actions/workflows/android-debug.yml/badge.svg"></a>
+  <a href="https://github.com/Gh0stDeveloper/NEXORA-LAST-SIGNAL/actions/workflows/release.yml"><img alt="Release" src="https://github.com/Gh0stDeveloper/NEXORA-LAST-SIGNAL/actions/workflows/release.yml/badge.svg"></a>
+  <img alt="Godot 4.6.3" src="https://img.shields.io/badge/Godot-4.6.3-478CBF?logo=godot-engine&logoColor=white">
+  <img alt="Android ARM64" src="https://img.shields.io/badge/Android-ARM64-3DDC84?logo=android&logoColor=white">
+  <img alt="Offline" src="https://img.shields.io/badge/runtime-100%25%20offline-111827">
+  <img alt="Version" src="https://img.shields.io/badge/version-1.0.0rc-E63946">
+</p>
 
-> **A player must be able to launch and play the complete game without Internet access, a server, an account service, matchmaking or any remote API.**
+<p align="center">
+  <img src="assets/ui/quarantine_hangar.webp" width="100%" alt="NEXORA LAST SIGNAL quarantine hangar">
+</p>
 
-Current version: **0.3.0-alpha.1**
+## Overview
 
-## What is retained from DEADFALL
+**NEXORA: LAST SIGNAL** is the standalone offline edition of the gameplay and presentation direction established in **NEXORA: DEADFALL**. Its authoritative simulation, campaign, zombies, weapons, companions, progression, inventory, saves and HUD all execute on the player's device.
 
-The offline port reuses or adapts the local DEADFALL systems that do not require a backend:
+The project has one non-negotiable runtime rule:
 
-| Area | LAST SIGNAL |
+> **The complete playable experience must continue working with no Internet connection, no account service, no matchmaking and no backend.**
+
+| Status | Value |
 | --- | --- |
-| Tactical visual language | Retained |
-| Quarantine hangar presentation | Retained |
-| Operator/character presentation | Retained using built-in procedural/skinned rigs |
-| Operator avatars | Retained |
-| Mobile HUD | Retained |
-| Custom HUD layout editor | Retained |
-| First/third-person camera system | Retained |
-| Walk/sprint/jump/crouch/prone | Retained |
-| NXR-4, NXR-9 and machete | Retained |
-| DEADFALL splash/loading screen | Retained and converted to local-only loading |
-| DEADFALL tactical lobby | Retained and converted to local operators/AI squad |
-| Hitscan/local damage authority | Retained |
-| Campaign framework | Retained |
-| Mission 01 · First Signal | Retained |
-| Mission 02 · Last Broadcast | Retained |
-| Checkpoint persistence | Retained locally |
-| 192×192 destroyed-city layout | Retained |
-| Enterable ruined structures | Retained |
-| Destroyed/burning vehicles | Retained |
-| Day/night cycle | Retained |
-| Walker | Retained |
-| Runner | Retained |
-| Crawler | Retained |
-| Screamer | Retained |
-| Tank | Retained |
-| Horde director | Retained |
-| Ammo/health drops | Retained |
-| Gore/dismemberment system | Retained |
-| Mobile performance profiles | Retained |
-| DEADFALL audio and ambience | Retained |
-| Mode artwork | Retained as bundled local assets |
+| Release candidate | **1.0.0rc** |
+| Engine | Godot **4.6.3** |
+| Primary platform | Android ARM64 |
+| Runtime authority | Local only |
+| Internet permission | Disabled |
+| Network-state permission | Disabled |
+| Game modes | Campaign / Assault / Endless |
+| Campaign missions | 4 |
+| AI squad | 0–3 companions |
+| Difficulty profiles | Story / Normal / Hard / Nightmare |
 
-LAST SIGNAL adds an offline-only layer around those systems: local progression, inventory, expanded loot, difficulty profiles, boss encounters and AI-controlled squad companions.
+## Release-candidate experience
 
-## What was removed
+### DEADFALL-style startup and match loading
 
-The following DEADFALL areas are deliberately not part of the runtime:
+LAST SIGNAL uses two separate loading experiences:
 
-- ENet or any other multiplayer transport;
-- dedicated-server runtime;
-- matchmaking;
-- online party synchronization;
-- login/authentication services;
-- social/friends/messages services;
-- remote telemetry;
-- backend APIs;
-- deployment/VPS infrastructure;
-- web portal dependencies;
-- network replication/snapshot APIs and remote-authority compatibility branches.
+1. **Startup loading** — asynchronously prepares the tactical lobby.
+2. **Match loading** — appears every time an operation starts and remains visible while the city, navigation, zombies, loot, HUD, weapons and AI squad are prepared.
 
-The Android package is exported with both Internet and network-state permissions disabled.
+The match loader shows the selected **mode, mission, difficulty and squad formation** and guarantees a visible tactical transition before gameplay is enabled.
 
-## External 3D repository exclusion
+### Tactical lobby
 
-The separate **Gh0stDeveloper/Objetos3D** repository is intentionally **not** vendored, cloned or required by LAST SIGNAL.
+The lobby retains the DEADFALL presentation structure and has been expanded for offline play:
 
-Excluded paths include:
+- 3D operator stage;
+- operator identity/profile card;
+- local NXC and level display;
+- AI party rail;
+- quick mode selector always visible;
+- full illustrated mode picker;
+- campaign mission selector;
+- difficulty selector;
+- local arsenal/loadout selector;
+- settings and local progress;
+- SOLO, DÚO IA and ESCUADRA IA formations;
+- DEADFALL quarantine-hangar presentation and visual-polish layer.
 
-```text
-vendor/Objetos3D
-assets/external/objetos3d
-```
+## Game modes
 
-DEADFALL's built-in procedural/skinned operator and infected presentation remains available, so operators, avatars, weapons and zombies continue to have a complete local visual representation without that external repository.
+| Mode | Description | End condition |
+| --- | --- | --- |
+| **Campaign** | Objective-driven city campaign with local checkpoints | Mission objectives + extraction |
+| **Assault · 10 Waves** | Escalating horde survival | Complete 10 waves |
+| **Endless** | Unlimited local survival | Player/squad elimination |
 
-## DEADFALL loading and lobby
+Campaign currently contains:
 
-The startup flow uses the DEADFALL presentation structure directly: tactical backdrop, Rajdhani typography, large NEXORA title treatment, asynchronous progress bar, quarantine hangar art and the tactical operator lobby. Online party/matchmaking actions were replaced by local formation controls for SOLO, DÚO IA and ESCUADRA IA. The lobby retains the 3D operator stage, party rail, arsenal, settings, mode cards and DEADFALL visual-polish layer.
+- **Mission 01 — First Signal**
+- **Mission 02 — Last Broadcast**
+- **Mission 03 — Blackout**
+- **Mission 04 — Final Signal**
 
-## Offline game modes
-
-### Campaign
-
-Campaign runs entirely on-device. Objectives, kills, survival timers, interactions, checkpoints and mission completion are evaluated by local simulation authority.
-
-Included mission definitions:
-
-- **Mission 01 · First Signal**
-- **Mission 02 · Last Broadcast**
-- **Mission 03 · Blackout**
-- **Mission 04 · Final Signal**
-
-Campaign checkpoint data is stored locally with checksum and backup recovery.
-
-### Assault · 10 Waves
-
-Survive ten escalating waves. The offline director controls population, spawn timing, archetype selection, loot and boss milestones.
-
-### Endless
-
-Infinite horde survival using the same local simulation, progression, loot and difficulty systems.
-
-## Offline squad
-
-The lobby can launch a run with **0–3 AI companions**.
-
-Companions:
-
-- follow the local player;
-- acquire nearby infected;
-- fire locally simulated weapons;
-- receive local health/damage;
-- count toward horde squad scaling;
-- use the same built-in operator presentation system;
-- revive the player when downed;
-- provide role-specific combat behavior;
-- Sentinel can provide local emergency healing support.
-
-No companion state is transmitted anywhere.
-
-## Operators
+## Operators and local squad
 
 Current local operator roster:
 
-- **VALERIA** — Reconocimiento
-- **DANTE** — Vanguardia
-- **PHOENIX** — Asalto
-- **SENTINEL** — Soporte
+- **VALERIA** — Recon
+- **DANTE** — Vanguard
+- **PHOENIX** — Assault
+- **SENTINEL** — Support
 
-The selected operator is stored on-device.
+A run can use **0–3 AI companions**. Companions follow the player, acquire infected, attack through local damage authority, can revive a downed leader and use role-specific support behavior.
 
-## Combat and weapons
+## Arsenal
 
-The DEADFALL combat stack is reused locally:
+Primary and secondary weapons are selected in the lobby and persisted locally.
 
-- **NXR-4 Carbine**
-- **NXR-7 Viper** — SMG
-- **NXR-18 Marksman** — DMR
-- **NXR-60 Bastion** — LMG
-- **NXR-9 Sidearm**
-- **NXR-12 Hammer** — heavy sidearm
-- **Machete**
-- finite magazines/reserve ammunition;
-- automatic reload/fallback;
-- local raycast hit resolution;
-- body-part hitboxes;
-- critical/body-part damage rules;
-- melee resolution;
-- first-person procedural weapon presentation;
-- local weapon audio.
+| Weapon | Class |
+| --- | --- |
+| NXR-4 Carbine | Assault rifle |
+| NXR-7 Viper | SMG |
+| NXR-18 Marksman | DMR |
+| NXR-60 Bastion | LMG |
+| NXR-9 Sidearm | Pistol |
+| NXR-12 Hammer | Heavy pistol |
+| Machete | Melee |
 
-The local inventory tracks weapon ownership and loot independently from any online account.
+Combat includes magazines, reserve ammunition, reloads, weapon switching, ADS, local raycast damage, body-part rules and melee.
 
-## Loot and inventory
+## Infected, hordes and bosses
 
-LAST SIGNAL adds a local inventory and world-loot layer.
-
-Current loot categories include:
-
-- ammunition boxes;
-- medkits;
-- scrap;
-- weapon parts.
-
-Loot is generated on-device when infected die and never requires an API or inventory server.
-
-## Zombies and bosses
-
-DEADFALL archetypes are retained:
+Retained DEADFALL infected archetypes:
 
 - Walker
 - Runner
@@ -187,91 +123,88 @@ DEADFALL archetypes are retained:
 - Tank
 - Screamer
 
-LAST SIGNAL adds milestone bosses every five waves:
+Milestone boss encounters include:
 
-- **Titan** — heavy infected with a close-range shockwave.
-- **Screamer Prime** — elite Screamer that periodically calls additional infected.
+- **Titan** — high-health boss with a local shockwave attack.
+- **Screamer Prime** — elite Screamer capable of calling additional infected.
 
-Boss health, damage and ability cadence scale with wave progression and difficulty.
+## City and atmosphere
 
-## Difficulty
+The retained city simulation includes:
 
-Four local profiles are available from the lobby:
-
-| Difficulty | Intent |
-| --- | --- |
-| Story | Reduced enemy pressure/damage |
-| Normal | Baseline DEADFALL-style balance |
-| Hard | Increased health, damage and spawn pressure |
-| Nightmare | Maximum local pressure |
-
-Difficulty modifies simulation values directly in the device runtime.
-
-## City and day/night cycle
-
-The retained campaign city uses the DEADFALL 192×192 deterministic layout, including:
-
-- streets/intersections;
-- sidewalks;
+- deterministic **192×192** campaign layout;
+- streets and intersections;
 - enterable ruined buildings;
-- interior collision;
-- damaged roofs/walls;
-- destroyed cars;
-- burning wrecks;
-- vegetation;
-- street furniture;
-- skyline;
+- destroyed/burning vehicles;
 - quarantine props;
-- local navigation mesh.
+- navigation mesh generated locally;
+- day/night cycle;
+- sun, moon, fog and ambient-light transitions;
+- bundled DEADFALL ambience and combat audio.
 
-The day/night controller modifies sun, moon, sky, fog, ambient lighting and shadow budgets without any clock/server dependency.
+## Inventory, loot and progression
 
-## HUD
+Local systems include:
 
-The DEADFALL mobile HUD remains the gameplay HUD and includes:
+- ammunition pickups;
+- medkits;
+- scrap;
+- weapon parts;
+- inventory/equipment state;
+- XP;
+- NXC;
+- level progression;
+- best wave;
+- mission completion state;
+- campaign checkpoints.
+
+No inventory or progression server exists.
+
+## Mobile HUD
+
+The DEADFALL-derived mobile HUD includes:
 
 - movement joystick;
 - touch look;
-- fire;
-- aim;
-- reload;
-- jump;
-- sprint;
-- crouch;
-- prone;
+- fire / ADS / reload;
+- jump / sprint / crouch / prone;
 - flashlight;
 - camera switching;
-- weapon selection;
-- HP/ammunition display;
+- weapon slots;
 - crosshair;
-- quick sensitivity control;
-- **HUD layout editor** with drag, resize, reset and local save.
+- health and ammunition;
+- quick sensitivity;
+- customizable HUD layout with local persistence.
 
-An offline inventory panel is also available in-game.
+## Offline architecture
 
-## Audio
+```text
+Boot
+└── Tactical Lobby
+    └── Match Loading Overlay
+        └── Offline Operation
+            ├── LocalAuthority
+            ├── CityArena + Navigation
+            ├── DayNightCycle
+            ├── Local Player
+            ├── 0–3 AI Companions
+            ├── HordeDirector
+            ├── CampaignDirector
+            ├── DifficultyDirector
+            ├── BossDirector
+            ├── LootDirector
+            ├── Gore
+            ├── MobileHUD
+            └── InventoryHUD
+```
 
-Bundled DEADFALL audio includes:
+The runtime deliberately excludes network, server, login, matchmaking and social modules.
 
-- rifle;
-- pistol;
-- reload;
-- dry fire;
-- melee;
-- impacts;
-- footsteps;
-- zombie growls;
-- zombie attacks;
-- zombie deaths;
-- UI click/confirm/error;
-- `last_signal.ogg`;
-- `quarantine_wind.ogg`.
+The separate **Gh0stDeveloper/Objetos3D** repository is also not required or vendored by LAST SIGNAL.
 
-All files are packaged with the game. Playback does not stream media from the Internet.
+## Local save files
 
-## Save data
-
-LAST SIGNAL uses local files under `user://`:
+LAST SIGNAL persists data under Godot's `user://` directory:
 
 ```text
 last_signal_profile.json
@@ -280,98 +213,62 @@ last_signal_progress.json
 campaign_last_signal_campaign.json
 ```
 
-Campaign saves use a temporary file + backup + checksum strategy inherited from DEADFALL's campaign persistence.
+Campaign persistence uses checksum-protected local saves with backup recovery.
 
-## Architecture
+## Android builds
 
-```text
-Boot
-└── Offline Lobby
-    └── Offline operation
-        ├── LocalAuthority
-        ├── CityArena
-        │   ├── local NavigationRegion
-        │   └── DayNightCycle
-        ├── Player
-        │   ├── Health/LifeState
-        │   ├── WeaponLoadout
-        │   └── Inventory
-        ├── 0–3 AI companions
-        ├── HordeDirector
-        │   └── local Zombie instances
-        ├── CampaignDirector
-        │   └── local checkpoints
-        ├── DifficultyDirector
-        ├── BossDirector
-        ├── LootDirector
-        ├── Gore
-        ├── MobileHUD
-        └── InventoryHUD
-```
-
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
-
-## Strict offline audit
-
-`tools/verify_offline.py` fails CI if runtime code contains or restores:
-
-- HTTP clients;
-- ENet;
-- WebSocket;
-- UDP/TCP networking;
-- Godot multiplayer APIs;
-- references to `src/network`, `src/server`, `src/social` or `src/login`;
-- references to the excluded Objetos3D runtime paths;
-- legacy server/replica APIs such as `server_try_*`, `apply_network_snapshot` and `apply_replica_*`;
-- Android Internet/network-state permissions.
-
-It also fails if forbidden online/external directories are physically present.
-
-## Development and validation
-
-Recommended engine:
+Package:
 
 ```text
-Godot 4.6.3
+com.nexora.lastsignal
 ```
 
-Run the offline audit:
+Release candidate:
+
+```text
+versionName: 1.0.0rc
+versionCode: 10000
+```
+
+The numeric Android `versionCode` is an internal monotonically increasing package value. The user-facing version is **1.0.0rc**.
+
+### Debug CI
+
+The Android Debug workflow:
+
+- installs JDK 17 and Android API 36 tooling;
+- installs Godot 4.6.3 export templates;
+- exports ARM64;
+- signs with an ephemeral CI key;
+- verifies APK Signature Schemes V1, V2, V3 and V4;
+- uploads the APK and V4 `.idsig` as Actions artifacts.
+
+### Public releases
+
+`.github/workflows/release.yml` is configured to publish GitHub Releases with:
+
+- signed APK;
+- V4 `.idsig`;
+- signature verification report;
+- SHA-256 checksums;
+- release manifest.
+
+Public release signing requires the persistent repository secrets documented in [docs/RELEASES.md](docs/RELEASES.md). The keystore is never committed.
+
+## Validation
+
+Run locally:
 
 ```bash
 python tools/verify_offline.py
-```
-
-Import/compile all resources:
-
-```bash
 godot --headless --editor --path . --quit
-```
-
-Run smoke tests:
-
-```bash
 godot --headless --path . --script scripts/ci/smoke.gd
 godot --headless --path . --script scripts/ci/gameplay_smoke.gd
 ```
 
-## Android
-
-Target:
-
-- Android
-- ARM64
-- Godot Mobile renderer
-- package `com.nexora.lastsignal`
-
-The debug workflow installs Godot 4.6.3 export templates, Android tooling and JDK 17, exports the APK, signs it with an ephemeral CI key and validates V1/V2/V3/V4 signing.
-
-Public builds use `.github/workflows/release.yml`. The release workflow exports an ARM64 APK, aligns it before signing, signs it with a persistent key from GitHub Actions Secrets, verifies APK Signature Schemes V1, V2, V3 and V4, and publishes the APK plus its V4 `.idsig`, checksums and release manifest to GitHub Releases.
-
-The release keystore itself is never stored in this repository. See [docs/RELEASES.md](docs/RELEASES.md).
+CI additionally performs recursive GDScript compilation and rejects network/server/replica APIs if they re-enter the runtime.
 
 ## Controls
-
-Desktop/development:
 
 | Input | Action |
 | --- | --- |
@@ -380,32 +277,24 @@ Desktop/development:
 | Space | Jump |
 | C | Crouch |
 | Z | Prone |
-| V | Cycle camera |
+| V | Camera |
 | F | Flashlight |
 | E | Interact |
 | Left mouse | Fire |
-| Right mouse | Aim |
+| Right mouse | ADS |
 | R | Reload |
 | 1/2/3 | Weapon slots |
 | Q | Next weapon |
 | I | Inventory |
 
-Android uses the DEADFALL touch HUD and its customizable layout.
+Android uses the customizable touch HUD.
 
-## Repository policy
-
-Any feature may be expanded as long as it does not make the game depend on connectivity. Optional future online code must live outside the runtime used by LAST SIGNAL and may not weaken the offline acceptance test.
-
-## Credits
+## Project ownership
 
 Project owner/developer: **Ghost Developer / Nexora**
 
-Presentation/audio credits retained from DEADFALL are documented in:
-
-```text
-assets/PRESENTATION_CREDITS.txt
-```
+Presentation/audio credits inherited from DEADFALL are documented in `assets/PRESENTATION_CREDITS.txt`.
 
 ---
 
-**NEXORA: LAST SIGNAL is intended to preserve the DEADFALL gameplay experience while making local/offline execution the only required authority path.**
+**NEXORA: LAST SIGNAL — the DEADFALL survival experience, rebuilt to remain playable locally.**

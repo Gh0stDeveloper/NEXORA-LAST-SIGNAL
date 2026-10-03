@@ -15,6 +15,7 @@ const VisualPolishScript = preload("res://src/lobby/LobbyVisualPolish.gd")
 const LoadingScript = preload("res://src/ui/MatchLoadingOverlay.gd")
 const ArenaScene = preload("res://src/maps/campaign/OutbreakDistrict.tscn")
 const ModeCatalog = preload("res://src/modes/ModeCatalog.gd")
+const Cosmetics = preload("res://src/customization/CosmeticCatalog.gd")
 const LOBBY_ART: Texture2D = preload("res://assets/ui/quarantine_hangar.webp")
 const APP_VERSION := "1.0.0rc"
 
@@ -27,6 +28,7 @@ var selected_secondary: StringName = &"nxr_pistol_01"
 
 var _safe_root: Control
 var _username_label: Label
+var _profile_icon: TextureRect
 var _wallet_button: Button
 var _status_label: Label
 var _game_mode_button: Button
@@ -74,6 +76,14 @@ func _ready() -> void:
 
 	GuestIdentity.username_changed.connect(_on_identity_username_changed)
 	GuestIdentity.selected_character_changed.connect(_on_identity_character_changed)
+	if GuestIdentity.has_signal("gender_changed"):
+		GuestIdentity.gender_changed.connect(_on_identity_gender_changed)
+	if GuestIdentity.has_signal("appearance_changed"):
+		GuestIdentity.appearance_changed.connect(_on_identity_appearance_changed)
+	if GuestIdentity.has_signal("profile_icon_changed"):
+		GuestIdentity.profile_icon_changed.connect(_on_identity_profile_icon_changed)
+	if Progress.has_signal("progress_changed"):
+		Progress.progress_changed.connect(_on_progress_changed)
 	AudioDirector.set_context(&"lobby")
 
 	var polish := VisualPolishScript.new()
@@ -133,11 +143,21 @@ func _build_top_bar() -> void:
 	card.name = "IdentityCard"
 	card.add_theme_stylebox_override("panel", UI.style(Color(0.012, 0.045, 0.056, 0.95), Color(UI.CYAN.r, UI.CYAN.g, UI.CYAN.b, 0.48), 14))
 	UI.place(card, _safe_root, Rect2(0.03, 0.025, 0.30, 0.105))
+	var identity_row := HBoxContainer.new()
+	identity_row.add_theme_constant_override("separation", 12)
+	card.add_child(identity_row)
+	_profile_icon = TextureRect.new()
+	_profile_icon.custom_minimum_size = Vector2(76,76)
+	_profile_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_profile_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_profile_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	identity_row.add_child(_profile_icon)
 	var card_box := VBoxContainer.new()
+	card_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	card_box.add_theme_constant_override("separation", 0)
-	card.add_child(card_box)
-	card_box.add_child(UI.label("N E X O R A   /   L A S T   S I G N A L", 20, UI.AMBER))
-	_username_label = UI.label("", 32)
+	identity_row.add_child(card_box)
+	card_box.add_child(UI.label("N E X O R A   /   L A S T   S I G N A L", 18, UI.AMBER))
+	_username_label = UI.label("", 28)
 	card_box.add_child(_username_label)
 
 	_wallet_button = UI.button("NIVEL 1   ·   0 NXC", _open_progress, false)
@@ -195,7 +215,9 @@ func _build_navigation() -> void:
 	nav.add_theme_constant_override("separation", 8)
 	nav_panel.add_child(nav)
 	for item in [
-		["OPERADORES", "operator", _open_character_panel],
+		["PERFIL", "operator", _open_profile],
+		["INVENTARIO", "squad", _open_inventory],
+		["TIENDA", "play", _open_shop],
 		["ARSENAL", "rifle", _open_armory],
 		["MODOS", "play", _open_mode_picker],
 		["DIFICULTAD", "shield", _open_difficulty],
@@ -203,7 +225,8 @@ func _build_navigation() -> void:
 	]:
 		var button := UI.button(item[0], item[2], false, item[1])
 		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		button.custom_minimum_size.y = 52
+		button.custom_minimum_size.y = 42
+		button.add_theme_font_size_override("font_size", 18)
 		nav.add_child(button)
 
 func _build_party_rail() -> void:
@@ -337,6 +360,198 @@ func _open_character_panel() -> void:
 		box.add_child(desc)
 		var selected: bool = GuestIdentity.selected_character == character.id
 		box.add_child(UI.button("EQUIPADO" if selected else "EQUIPAR", _select_character.bind(character.id), not selected, "operator"))
+
+func _open_profile() -> void:
+	var box := _new_overlay("PERFIL OFFLINE")
+	var header := HBoxContainer.new()
+	header.add_theme_constant_override("separation", 18)
+	box.add_child(header)
+
+	var icon := TextureRect.new()
+	icon.custom_minimum_size = Vector2(120,120)
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.texture = load(Cosmetics.profile_icon_asset(GuestIdentity.profile_icon)) as Texture2D
+	header.add_child(icon)
+
+	var identity := VBoxContainer.new()
+	identity.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header.add_child(identity)
+	identity.add_child(UI.label(_display_username(), 34, UI.AMBER))
+	identity.add_child(UI.label("PERFIL LOCAL · SIN CUENTA EN LÍNEA", 20, UI.CYAN))
+	var progress: Dictionary = Progress.snapshot()
+	identity.add_child(UI.label("NIVEL %d  ·  %d XP  ·  %d NXC" % [
+		int(progress.get("level",1)),
+		int(progress.get("xp",0)),
+		int(progress.get("coins",0))
+	], 22, UI.MUTED))
+
+	var username_row := HBoxContainer.new()
+	username_row.add_theme_constant_override("separation", 12)
+	box.add_child(username_row)
+	var username_edit := LineEdit.new()
+	username_edit.text = GuestIdentity.username
+	username_edit.placeholder_text = "Nombre del superviviente"
+	username_edit.max_length = 16
+	username_edit.custom_minimum_size = Vector2(440,58)
+	username_edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	username_row.add_child(username_edit)
+	username_row.add_child(UI.button("GUARDAR NOMBRE", func() -> void:
+		if GuestIdentity.set_username(username_edit.text):
+			_refresh_identity()
+			_close_overlay()
+			_open_profile()
+	, true, "operator"))
+
+	box.add_child(UI.label("GÉNERO DEL PERSONAJE", 24, UI.CYAN))
+	var gender_row := HBoxContainer.new()
+	gender_row.add_theme_constant_override("separation", 12)
+	box.add_child(gender_row)
+	for option in [["female","FEMENINO"],["male","MASCULINO"]]:
+		var active: bool = GuestIdentity.gender == String(option[0])
+		var button := UI.button(String(option[1]), _set_profile_gender.bind(String(option[0])), active, "operator")
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		gender_row.add_child(button)
+
+	var preview := Stage.new()
+	preview.custom_minimum_size.y = 280
+	box.add_child(preview)
+	preview.set_members([{
+		"guest_id":GuestIdentity.guest_id,
+		"selected_character":_selected_character,
+		"appearance":GuestIdentity.appearance_snapshot(),
+	}],1)
+
+	box.add_child(UI.label("ICONO DE PERFIL", 24, UI.CYAN))
+	var icons := GridContainer.new()
+	icons.columns = 3
+	icons.add_theme_constant_override("h_separation", 10)
+	icons.add_theme_constant_override("v_separation", 10)
+	box.add_child(icons)
+	for item in Cosmetics.items_for_gender(GuestIdentity.gender, "profile_icon"):
+		var item_id := StringName(String(item.get("id","")))
+		var owned := Progress.owns_cosmetic(item_id)
+		var selected := item_id == GuestIdentity.profile_icon
+		var caption := "EQUIPADO" if selected else (String(item.get("name","ICONO")) if owned else "%s · %d NXC" % [String(item.get("name","ICONO")), int(item.get("price",0))])
+		var icon_button := UI.button(caption, _select_profile_icon.bind(item_id) if owned else _open_shop, selected, "operator")
+		icon_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var asset := String(item.get("asset",""))
+		if not asset.is_empty():
+			icon_button.icon = load(asset) as Texture2D
+			icon_button.expand_icon = true
+			icon_button.add_theme_constant_override("icon_max_width", 48)
+		icons.add_child(icon_button)
+
+func _open_inventory() -> void:
+	var box := _new_overlay("INVENTARIO · VESTUARIO")
+	box.add_child(UI.label("Elige la apariencia del personaje. Las prendas se guardan por género y funcionan completamente offline.", 21, UI.MUTED))
+	var preview := Stage.new()
+	preview.custom_minimum_size.y = 260
+	box.add_child(preview)
+	preview.set_members([{
+		"guest_id":GuestIdentity.guest_id,
+		"selected_character":_selected_character,
+		"appearance":GuestIdentity.appearance_snapshot(),
+	}],1)
+	var equipped := GuestIdentity.get_equipped_cosmetics()
+	for category in Cosmetics.CATEGORIES:
+		box.add_child(UI.label(Cosmetics.category_label(category), 24, UI.CYAN))
+		var grid := GridContainer.new()
+		grid.columns = 3
+		grid.add_theme_constant_override("h_separation", 10)
+		grid.add_theme_constant_override("v_separation", 10)
+		box.add_child(grid)
+		var any_owned := false
+		for item in Cosmetics.items_for_gender(GuestIdentity.gender, category):
+			var item_id := StringName(String(item.get("id","")))
+			if not Progress.owns_cosmetic(item_id):
+				continue
+			any_owned = true
+			var selected := String(equipped.get(category,"")) == String(item_id)
+			var button := UI.button(
+				"EQUIPADO · %s" % String(item.get("name","")) if selected else String(item.get("name","")),
+				_equip_cosmetic.bind(category,item_id),
+				selected,
+				"operator"
+			)
+			button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			grid.add_child(button)
+		if not any_owned:
+			grid.add_child(UI.label("Sin objetos. Visita la tienda.", 19, UI.MUTED))
+
+func _open_shop() -> void:
+	var box := _new_overlay("TIENDA · NEXORA")
+	var balance := Progress.get_coins()
+	box.add_child(UI.label("%d NXC DISPONIBLES" % balance, 32, UI.AMBER))
+	box.add_child(UI.label("Las compras son locales. Las monedas se ganan jugando partidas, oleadas y misiones.", 21, UI.MUTED))
+	var available := 0
+	for category in Cosmetics.CATEGORIES + ["profile_icon"]:
+		var items := Cosmetics.items_for_gender(GuestIdentity.gender, category)
+		var unowned: Array = []
+		for item in items:
+			if not Progress.owns_cosmetic(StringName(String(item.get("id","")))):
+				unowned.append(item)
+		if unowned.is_empty():
+			continue
+		available += unowned.size()
+		box.add_child(UI.label(Cosmetics.category_label(category), 24, UI.CYAN))
+		var grid := GridContainer.new()
+		grid.columns = 2
+		grid.add_theme_constant_override("h_separation", 12)
+		grid.add_theme_constant_override("v_separation", 12)
+		box.add_child(grid)
+		for item in unowned:
+			var item_id := StringName(String(item.get("id","")))
+			var price := int(item.get("price",0))
+			var card := PanelContainer.new()
+			card.add_theme_stylebox_override("panel", UI.style())
+			card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			grid.add_child(card)
+			var row := HBoxContainer.new()
+			row.add_theme_constant_override("separation", 12)
+			card.add_child(row)
+			var copy := VBoxContainer.new()
+			copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			row.add_child(copy)
+			copy.add_child(UI.label(String(item.get("name","COSMÉTICO")), 22))
+			copy.add_child(UI.label("%s · %s" % [Cosmetics.category_label(category), "UNISEX" if String(item.get("gender","any")) == "any" else ("MASCULINO" if String(item.get("gender","")) == "male" else "FEMENINO")], 17, UI.MUTED))
+			var buy := UI.button("COMPRAR · %d NXC" % price, _buy_cosmetic.bind(item_id), balance >= price, "play")
+			buy.disabled = balance < price
+			row.add_child(buy)
+	if available == 0:
+		box.add_child(UI.label("TODO EL CATÁLOGO COMPATIBLE YA ESTÁ EN TU INVENTARIO.", 24, UI.CYAN))
+
+func _set_profile_gender(value: String) -> void:
+	GuestIdentity.set_gender(value)
+	_close_overlay()
+	_open_profile()
+
+func _select_profile_icon(item_id: StringName) -> void:
+	if not Progress.owns_cosmetic(item_id):
+		return
+	if GuestIdentity.set_profile_icon(item_id):
+		_refresh_identity()
+		_close_overlay()
+		_open_profile()
+
+func _equip_cosmetic(category: String, item_id: StringName) -> void:
+	if not Progress.owns_cosmetic(item_id):
+		return
+	if GuestIdentity.equip_cosmetic(category,item_id):
+		_refresh_mode()
+		_close_overlay()
+		_open_inventory()
+
+func _buy_cosmetic(item_id: StringName) -> void:
+	var result: Dictionary = Progress.purchase_cosmetic(item_id)
+	if bool(result.get("ok",false)):
+		_refresh_wallet()
+		AudioDirector.play_ui(&"ui_confirm")
+		_close_overlay()
+		_open_shop()
+	else:
+		AudioDirector.play_ui(&"ui_error")
+		_status_label.text = "NXC INSUFICIENTES PARA ESA COMPRA"
 
 func _open_armory() -> void:
 	var box := _new_overlay("ARSENAL")
@@ -611,14 +826,28 @@ func _refresh_mode() -> void:
 func _update_local_party() -> void:
 	var capacity := int(selected_mode)
 	var roster := CharacterCatalog.all()
-	var shown: Array = [{"guest_id":GuestIdentity.guest_id,"username":_display_username(),"selected_character":_selected_character,"leader":true}]
+	var shown: Array = [{
+		"guest_id":GuestIdentity.guest_id,
+		"username":_display_username(),
+		"selected_character":_selected_character,
+		"appearance":GuestIdentity.appearance_snapshot(),
+		"profile_icon":String(GuestIdentity.profile_icon),
+		"leader":true,
+	}]
 	var ai_index := 0
 	while shown.size() < capacity:
 		var candidate: Dictionary = roster[ai_index % roster.size()]
 		ai_index += 1
 		if StringName(candidate.id) == _selected_character:
 			continue
-		shown.append({"guest_id":"ai_%d" % shown.size(),"username":"%s · IA" % String(candidate.name),"selected_character":candidate.id,"leader":false})
+		var ai_slot := shown.size()
+		shown.append({
+			"guest_id":"ai_%d" % ai_slot,
+			"username":"%s · IA" % String(candidate.name),
+			"selected_character":candidate.id,
+			"appearance":Cosmetics.ai_appearance(ai_slot),
+			"leader":false,
+		})
 
 	_stage_view.call("set_members", shown, capacity)
 	for index in range(_party_slots.size()):
@@ -644,6 +873,9 @@ func _update_local_party() -> void:
 
 func _refresh_identity() -> void:
 	_username_label.text = "%s   /   LOCAL" % _display_username()
+	if _profile_icon != null:
+		var icon_path := Cosmetics.profile_icon_asset(GuestIdentity.profile_icon)
+		_profile_icon.texture = load(icon_path) as Texture2D
 
 func _refresh_wallet() -> void:
 	var value: Dictionary = Progress.snapshot()
@@ -653,9 +885,9 @@ func _display_username() -> String:
 	return GuestIdentity.username if not GuestIdentity.username.is_empty() else "SUPERVIVIENTE"
 
 func _refresh_character() -> void:
-	var character := CharacterCatalog.get_character(_selected_character)
-	_character_name.text = character.name
-	_character_role.text = "%s  /  ARRASTRA PARA GIRAR" % character.role
+	_character_name.text = "OPERADOR UNIVERSAL"
+	var gender_label := "MASCULINO" if GuestIdentity.gender == "male" else "FEMENINO"
+	_character_role.text = "%s  /  ARRASTRA PARA GIRAR" % gender_label
 
 func _on_identity_username_changed(_username: String) -> void:
 	_refresh_identity()
@@ -664,6 +896,22 @@ func _on_identity_character_changed(character_id: StringName) -> void:
 	_selected_character = character_id
 	_refresh_character()
 	_refresh_mode()
+
+func _on_identity_gender_changed(_gender: String) -> void:
+	_refresh_identity()
+	_refresh_character()
+	_refresh_mode()
+
+func _on_identity_appearance_changed(_appearance: Dictionary) -> void:
+	_refresh_identity()
+	_refresh_character()
+	_refresh_mode()
+
+func _on_identity_profile_icon_changed(_icon_id: StringName) -> void:
+	_refresh_identity()
+
+func _on_progress_changed(_snapshot: Dictionary) -> void:
+	_refresh_wallet()
 
 func _on_start_pressed() -> void:
 	if _arena != null:
@@ -677,6 +925,7 @@ func _on_start_pressed() -> void:
 		"character_id":_selected_character,
 		"primary_weapon_id":selected_primary,
 		"secondary_weapon_id":selected_secondary,
+		"appearance":GuestIdentity.appearance_snapshot(),
 	}
 	start_requested.emit(config)
 	_start_operation(config)
@@ -709,6 +958,7 @@ func _start_operation(config: Dictionary) -> void:
 	_arena.set("character_id",StringName(config.get("character_id",&"operator_01")))
 	_arena.set("primary_weapon_id",StringName(config.get("primary_weapon_id",&"nxr_rifle_01")))
 	_arena.set("secondary_weapon_id",StringName(config.get("secondary_weapon_id",&"nxr_pistol_01")))
+	_arena.set("appearance",Dictionary(config.get("appearance",{})))
 	_arena.connect("return_to_lobby",Callable(self,"_on_return_to_lobby"))
 	add_child(_arena)
 

@@ -1,4 +1,4 @@
-version=0.3.0-alpha.1
+version=1.0.0rc
 publish=true
 channel=public-prerelease
 requested_from=main

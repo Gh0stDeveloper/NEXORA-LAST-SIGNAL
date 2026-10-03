@@ -26,6 +26,7 @@ const ResultScript=preload("res://src/offline/RunResultOverlay.gd")
 @export var character_id:StringName=&"operator_01"
 @export var primary_weapon_id:StringName=&"nxr_rifle_01"
 @export var secondary_weapon_id:StringName=&"nxr_pistol_01"
+@export var appearance:Dictionary={}
 
 @onready var players_root:Node3D=$LocalPlayers
 @onready var player_spawns:Node3D=$PlayerSpawnPoints
@@ -95,6 +96,8 @@ func _spawn_local_player()->void:
 	var presenter:=player.get_node_or_null("VisualRoot/ModelPresenter")
 	if presenter!=null and presenter.has_method("configure_character"):
 		presenter.call_deferred("configure_character",character_id)
+		if not appearance.is_empty() and presenter.has_method("configure_appearance"):
+			presenter.call_deferred("configure_appearance",appearance)
 	_build_local_huds(player)
 
 func _setup_offline_systems()->void:

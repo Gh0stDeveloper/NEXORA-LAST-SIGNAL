@@ -1,28 +1,27 @@
 class_name DeadfallPlayerModelPresenter
 extends Node3D
 
-const ExternalModels = preload("res://src/assets/ExternalModelCatalog.gd")
-const ModelNormalizer = preload("res://src/assets/ModelNormalizer.gd")
-const AnimationDriver = preload("res://src/assets/ImportedAnimationDriver.gd")
 const ProceduralCharacters = preload("res://src/assets/ProceduralCharacterModel.gd")
-const TARGET_VISUAL_HEIGHT := 1.66
-const USE_EXTERNAL_MODELS := false
+const UniversalAnimations = preload("res://src/assets/UniversalAnimationLibrary.gd")
 const ATTACK_PRESENTATION_USEC := 360_000
+const JUMP_START_PRESENTATION_USEC := 170_000
+const LAND_PRESENTATION_USEC := 240_000
 
 @export var fallback_body_path := NodePath("../Body")
-@export_range(0.05, 0.50, 0.01) var animation_update_interval := 0.10
 
 var _fallback_body: GeometryInstance3D
 var _loaded_model: Node3D
 var _character_id: StringName = &"operator_01"
-var _configured_once := false
+var _appearance: Dictionary = {}
+var _appearance_signature := ""
 var _animation_status: Dictionary = {}
-var _animation_elapsed := 0.0
-var _procedural_elapsed := 0.0
-var _model_is_procedural := false
-var _semantic_state := StringName()
+var _elapsed := 0.0
+var _semantic_state: StringName = &"idle"
 var _last_action_sequences := {0: 0, 1: 0, 2: 0}
 var _attack_until_usec := 0
+var _jump_start_until_usec := 0
+var _land_until_usec := 0
+var _was_on_floor := true
 var _visuals_enabled := true
 
 func _ready() -> void:
@@ -32,83 +31,80 @@ func _ready() -> void:
 		visible = false
 		set_process(false)
 		return
+	if GuestIdentity != null:
+		_appearance = GuestIdentity.appearance_snapshot()
+		_appearance_signature = JSON.stringify(_appearance)
+		if GuestIdentity.has_signal("appearance_changed"):
+			GuestIdentity.appearance_changed.connect(_on_identity_appearance_changed)
 	set_process(true)
 	call_deferred("configure_character", _character_id)
 
 func _process(delta: float) -> void:
-	if not _visuals_enabled or not has_external_model():
+	if not _visuals_enabled or _loaded_model == null:
 		return
-	if _model_is_procedural:
-		_update_procedural_presentation(delta)
+	_elapsed += delta
+	var owner := _owner_body()
+	if owner == null:
 		return
-	_animation_elapsed += delta
-	if _animation_elapsed < animation_update_interval:
-		return
-	_animation_elapsed = 0.0
+	_update_jump_state(owner)
 	_detect_weapon_action()
-	_update_semantic_animation()
+	var desired := _desired_semantic_state(owner)
+	_semantic_state = desired
+	var planar_speed := Vector2(owner.velocity.x, owner.velocity.z).length()
+	if _loaded_model.has_method("animate_pose"):
+		_loaded_model.call("animate_pose", _elapsed, planar_speed, desired)
+	var loadout := owner.get_node_or_null("WeaponLoadout")
+	if loadout != null and _loaded_model.has_method("equip_visual"):
+		_loaded_model.call("equip_visual", int(loadout.get("active_slot")))
+	_animation_status = {
+		"ok":true,
+		"source":"supplied_animation_library",
+		"semantic":String(desired),
+		"source_sha256":UniversalAnimations.SOURCE_SHA256,
+	}
 
 func configure_character(character_id: StringName) -> bool:
-	var requested := character_id if not character_id.is_empty() else &"operator_01"
-	var unchanged := _configured_once and requested == _character_id and has_external_model()
-	_character_id = requested
+	_character_id = character_id if not character_id.is_empty() else &"operator_01"
+	if GuestIdentity != null and _appearance.is_empty():
+		_appearance = GuestIdentity.appearance_snapshot()
+		_appearance_signature = JSON.stringify(_appearance)
+	return _rebuild_model()
+
+func configure_appearance(value: Dictionary) -> bool:
+	var next := value.duplicate(true)
+	var signature := JSON.stringify(next)
+	if signature == _appearance_signature and _loaded_model != null:
+		return true
+	_appearance = next
+	_appearance_signature = signature
+	return _rebuild_model()
+
+func _rebuild_model() -> bool:
 	if not _visuals_enabled:
 		return false
-	if unchanged:
-		return true
-	_configured_once = true
-	_clear_loaded_model()
-	if not USE_EXTERNAL_MODELS:
-		return _load_procedural_model()
-	var config := ExternalModels.character(_character_id)
-	if not ExternalModels.model_exists(config):
-		_set_fallback_visible(true)
-		return false
-	var resource := load(String(config.get("path", "")))
-	var scene := resource as PackedScene
-	if scene == null:
-		_set_fallback_visible(true)
-		return false
-	_loaded_model = scene.instantiate() as Node3D
+	if _loaded_model != null and is_instance_valid(_loaded_model):
+		_loaded_model.queue_free()
+	_loaded_model = ProceduralCharacters.create_operator(_character_id, 0, _appearance)
 	if _loaded_model == null:
 		_set_fallback_visible(true)
 		return false
-	_model_is_procedural = false
-	var configured_scale: Vector3 = config.get("scale", Vector3.ONE)
-	var configured_rotation: Vector3 = config.get("rotation_degrees", Vector3.ZERO)
-	var configured_offset: Vector3 = config.get("offset", Vector3.ZERO)
-	_loaded_model.name = "ExternalCharacterModel"
-	_loaded_model.scale = configured_scale
-	_loaded_model.rotation_degrees = configured_rotation
-	_loaded_model.position = configured_offset
+	_loaded_model.name = "UniversalOperatorModel"
 	add_child(_loaded_model)
-	var normalization := ModelNormalizer.normalize_visual(_loaded_model, self, TARGET_VISUAL_HEIGHT)
-	if not bool(normalization.get("ok", false)):
-		push_warning("DEADFALL player model normalization failed: %s" % String(normalization.get("reason", "unknown")))
+	_loaded_model.call("equip_visual", 0)
 	_set_fallback_visible(false)
 	_semantic_state = &"idle"
-	_animation_status = AnimationDriver.play_semantic(_loaded_model, _semantic_state, 0.0)
-	if not bool(_animation_status.get("ok", false)):
-		_animation_status = AnimationDriver.play_best_pose(_loaded_model, ["idle", "stand", "breath", "walk", "run", "locomotion"])
-	if bool(config.get("expects_animation", false)) and not bool(_animation_status.get("ok", false)):
-		push_warning("DEADFALL expected animated player model has no usable runtime clip: %s" % String(config.get("source_name", _character_id)))
-	return true
-
-func _load_procedural_model() -> bool:
-	_loaded_model = ProceduralCharacters.create_operator(_character_id)
-	if _loaded_model == null:
-		_set_fallback_visible(true)
-		return false
-	_loaded_model.name = "ProceduralCharacterModel"
-	add_child(_loaded_model)
-	_model_is_procedural = true
-	_set_fallback_visible(false)
-	_semantic_state = &"idle"
+	_elapsed = 0.0
+	_last_action_sequences = {0:0,1:0,2:0}
+	_attack_until_usec = 0
+	_jump_start_until_usec = 0
+	_land_until_usec = 0
+	var owner := _owner_body()
+	_was_on_floor = owner.is_on_floor() if owner != null else true
 	_animation_status = {
-		"ok": true,
-		"source": "procedural",
-		"semantic": "idle",
-		"clip": "static_pose",
+		"ok":true,
+		"source":"supplied_animation_library",
+		"semantic":"idle",
+		"source_sha256":UniversalAnimations.SOURCE_SHA256,
 	}
 	return true
 
@@ -116,26 +112,97 @@ func _owner_body() -> CharacterBody3D:
 	var visual_root := get_parent()
 	return visual_root.get_parent() as CharacterBody3D if visual_root != null else null
 
-func _update_procedural_presentation(delta: float) -> void:
-	_procedural_elapsed += delta
-	var owner := _owner_body()
-	if owner == null or _loaded_model == null:
+func _update_jump_state(owner: CharacterBody3D) -> void:
+	var on_floor := owner.is_on_floor()
+	var now := Time.get_ticks_usec()
+	if _was_on_floor and not on_floor and owner.velocity.y > 0.05:
+		_jump_start_until_usec = now + JUMP_START_PRESENTATION_USEC
+		_land_until_usec = 0
+	elif not _was_on_floor and on_floor:
+		_land_until_usec = now + LAND_PRESENTATION_USEC
+		_jump_start_until_usec = 0
+	_was_on_floor = on_floor
+
+func _detect_weapon_action() -> void:
+	var context := _weapon_context()
+	if context.is_empty():
 		return
-	_detect_weapon_action()
-	_semantic_state = _desired_semantic_state()
-	var speed := Vector2(owner.velocity.x, owner.velocity.z).length()
-	if _loaded_model.has_method("animate_pose"):
-		_loaded_model.call("animate_pose", _procedural_elapsed, speed, _semantic_state)
+	var slot := int(context.get("slot",0))
+	var weapon_state: Dictionary = context.get("state",{})
+	var sequence := int(weapon_state.get("last_sequence",0))
+	var previous := int(_last_action_sequences.get(slot,0))
+	if sequence > previous:
+		_last_action_sequences[slot] = sequence
+		_attack_until_usec = Time.get_ticks_usec() + ATTACK_PRESENTATION_USEC
+
+func _weapon_context() -> Dictionary:
+	var owner := _owner_body()
+	if owner == null:
+		return {}
 	var loadout := owner.get_node_or_null("WeaponLoadout")
-	if loadout != null and _loaded_model.has_method("equip_visual"):
-		_loaded_model.call("equip_visual", int(loadout.get("active_slot")))
-	var stance := int(owner.get("stance"))
-	var height_scale := 0.75 if stance == 1 else 1.0
-	_loaded_model.scale = _loaded_model.scale.lerp(Vector3(1, height_scale, 1), clampf(delta * 10, 0, 1))
-	_animation_status = {"ok": true, "source": "procedural", "semantic": _semantic_state, "clip": "articulated_pose"}
+	if loadout == null or not loadout.has_method("get_authoritative_state"):
+		return {}
+	var state: Dictionary = loadout.call("get_authoritative_state")
+	var slot := clampi(int(state.get("active_slot",0)),0,2)
+	var weapon_state: Dictionary
+	match slot:
+		1:
+			weapon_state = Dictionary(state.get("secondary",{}))
+		2:
+			weapon_state = Dictionary(state.get("melee",{}))
+		_:
+			weapon_state = Dictionary(state.get("primary",{}))
+	return {"slot":slot,"state":weapon_state}
+
+func _desired_semantic_state(owner: CharacterBody3D) -> StringName:
+	var life_state := owner.get_node_or_null("LifeState")
+	if life_state != null:
+		var raw_state = life_state.get("state")
+		var life := int(raw_state) if raw_state != null else 0
+		if life == 2:
+			return &"death"
+		if life == 1:
+			return &"crawl"
+
+	var now := Time.get_ticks_usec()
+	if now < _jump_start_until_usec:
+		return &"jump_start"
+	if not owner.is_on_floor():
+		return &"jump"
+	if now < _land_until_usec:
+		return &"jump_land"
+
+	var context := _weapon_context()
+	var slot := int(context.get("slot",0))
+	var weapon_state: Dictionary = context.get("state",{})
+	if bool(weapon_state.get("reloading",false)):
+		return &"reload"
+	if now < _attack_until_usec:
+		return &"melee" if slot == 2 else &"attack"
+
+	var stance_value = owner.get("stance")
+	var stance := int(stance_value) if stance_value != null else 0
+	var planar_speed := Vector2(owner.velocity.x, owner.velocity.z).length()
+	if stance == 2:
+		return &"crawl"
+	if stance == 1:
+		return &"crouch_walk" if planar_speed > 0.18 else &"crouch_idle"
+
+	var input_source := owner.get_node_or_null("PlayerInput")
+	if input_source != null and slot == 1 and input_source.has_method("is_action_pressed"):
+		if bool(input_source.call("is_action_pressed",&"aim")):
+			return &"aim"
+	if planar_speed > 5.8:
+		return &"run"
+	if planar_speed > 0.22:
+		return &"walk"
+	return &"idle"
 
 func current_character_id() -> StringName:
 	return _character_id
+
+func current_appearance() -> Dictionary:
+	return _appearance.duplicate(true)
 
 func has_external_model() -> bool:
 	return _loaded_model != null and is_instance_valid(_loaded_model)
@@ -147,81 +214,14 @@ func get_semantic_state() -> StringName:
 	return _semantic_state
 
 func get_semantic_inventory() -> Dictionary:
-	return AnimationDriver.semantic_inventory(_loaded_model) if has_external_model() else {}
+	var result := {}
+	for clip_name in UniversalAnimations.data().get("clips",{}).keys():
+		result[String(clip_name)] = String(clip_name)
+	return result
 
-func _detect_weapon_action() -> void:
-	var owner := _owner_body()
-	if owner == null:
-		return
-	var loadout := owner.get_node_or_null("WeaponLoadout")
-	if loadout == null or not loadout.has_method("get_authoritative_state"):
-		return
-	var state: Dictionary = loadout.call("get_authoritative_state")
-	var slot := clampi(int(state.get("active_slot", 0)), 0, 2)
-	var weapon_state: Dictionary
-	match slot:
-		1:
-			weapon_state = Dictionary(state.get("secondary", {}))
-		2:
-			weapon_state = Dictionary(state.get("melee", {}))
-		_:
-			weapon_state = Dictionary(state.get("primary", {}))
-	var sequence := int(weapon_state.get("last_sequence", 0))
-	var previous := int(_last_action_sequences.get(slot, 0))
-	if sequence > previous:
-		_last_action_sequences[slot] = sequence
-		_attack_until_usec = Time.get_ticks_usec() + ATTACK_PRESENTATION_USEC
+func _on_identity_appearance_changed(value: Dictionary) -> void:
+	configure_appearance(value)
 
-func _update_semantic_animation() -> void:
-	var desired := _desired_semantic_state()
-	if desired == _semantic_state:
-		return
-	_semantic_state = desired
-	var speed := 1.0
-	if desired == &"run":
-		speed = 1.10
-	elif desired == &"walk" or desired == &"crawl":
-		speed = 0.95
-	var result := AnimationDriver.play_semantic(_loaded_model, desired, 0.12, speed)
-	if bool(result.get("ok", false)):
-		_animation_status = result
-
-func _desired_semantic_state() -> StringName:
-	var owner := _owner_body()
-	if owner == null:
-		return &"idle"
-	var life_state := owner.get_node_or_null("LifeState")
-	if life_state != null:
-		var state_value = life_state.get("state")
-		var state := int(state_value) if state_value != null else 0
-		if state == 2:
-			return &"death"
-		if state == 1:
-			return &"crawl"
-	var planar_speed := Vector2(owner.velocity.x, owner.velocity.z).length()
-	var stance_value = owner.get("stance")
-	var stance := int(stance_value) if stance_value != null else 0
-	if stance == 2:
-		return &"crawl"
-	if Time.get_ticks_usec() < _attack_until_usec:
-		return &"attack"
-	if planar_speed > 5.8:
-		return &"run"
-	if planar_speed > 0.22:
-		return &"walk"
-	return &"idle"
-
-func _clear_loaded_model() -> void:
-	if _loaded_model != null and is_instance_valid(_loaded_model):
-		_loaded_model.queue_free()
-	_loaded_model = null
-	_animation_status = {}
-	_semantic_state = StringName()
-	_last_action_sequences = {0: 0, 1: 0, 2: 0}
-	_attack_until_usec = 0
-	_procedural_elapsed = 0.0
-	_model_is_procedural = false
-
-func _set_fallback_visible(visible: bool) -> void:
+func _set_fallback_visible(value: bool) -> void:
 	if _fallback_body != null:
-		_fallback_body.visible = visible
+		_fallback_body.visible = value

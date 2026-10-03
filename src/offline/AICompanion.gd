@@ -5,6 +5,7 @@ const HealthScript = preload("res://src/core/health/HealthComponent.gd")
 const LifeStateScript = preload("res://src/player/PlayerLifeState.gd")
 const DamageEventScript = preload("res://src/core/damage/DamageEvent.gd")
 const ProceduralCharacters = preload("res://src/assets/ProceduralCharacterModel.gd")
+const Cosmetics = preload("res://src/customization/CosmeticCatalog.gd")
 
 @export var player_entity_id := 101
 @export var operator_id: StringName = &"operator_02"
@@ -23,6 +24,7 @@ var _revive_target: Node3D
 var _support_cooldown := 0.0
 var _model: Node3D
 var _animation_time := 0.0
+var _attack_until_usec := 0
 var health: Node
 var life_state: Node
 
@@ -56,7 +58,11 @@ func _ready() -> void:
 	add_child(life_state)
 
 	_apply_role_profile()
-	_model = ProceduralCharacters.create_operator(operator_id, player_entity_id % 4)
+	_model = ProceduralCharacters.create_operator(
+		operator_id,
+		player_entity_id % 4,
+		Cosmetics.ai_appearance(player_entity_id % 4)
+	)
 	_model.name = "OperatorVisual"
 	add_child(_model)
 
@@ -278,6 +284,7 @@ func _find_target() -> Node3D:
 	return best
 
 func _attack_target(target: Node3D) -> void:
+	_attack_until_usec = Time.get_ticks_usec() + 360_000
 	var target_health := target.get_node_or_null("Health")
 	if target_health == null or Game.authority == null:
 		return
@@ -296,5 +303,13 @@ func _attack_target(target: Node3D) -> void:
 func _animate_model() -> void:
 	if _model != null and is_instance_valid(_model) and _model.has_method("animate_pose"):
 		var planar_speed := Vector2(velocity.x, velocity.z).length()
-		var pose := &"downed" if is_downed() else &"idle"
+		var pose: StringName = &"idle"
+		if is_downed():
+			pose = &"crawl"
+		elif Time.get_ticks_usec() < _attack_until_usec:
+			pose = &"attack"
+		elif planar_speed > 4.4:
+			pose = &"run"
+		elif planar_speed > 0.2:
+			pose = &"walk"
 		_model.call("animate_pose", _animation_time, planar_speed, pose)

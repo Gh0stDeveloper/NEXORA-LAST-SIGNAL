@@ -18,7 +18,8 @@ func _ready() -> void:
 	_build_viewport()
 
 func set_member(member: Dictionary, slot_index: int) -> void:
-	var key := str([member.get("selected_character", "operator_01"), slot_index])
+	var appearance := Dictionary(member.get("appearance", {}))
+	var key := str([member.get("selected_character", "operator_01"), appearance, slot_index])
 	if _active and key == _appearance_key:
 		return
 	_appearance_key = key
@@ -26,7 +27,7 @@ func set_member(member: Dictionary, slot_index: int) -> void:
 	_active = true
 	_clear_model()
 	var character_id := StringName(String(member.get("selected_character", member.get("character_id", "operator_01"))))
-	_model = ProceduralCharacters.create_operator(character_id, slot_index)
+	_model = ProceduralCharacters.create_operator(character_id, slot_index, appearance)
 	_model.name = "MemberOperator%d" % (slot_index + 1)
 	_model.scale = Vector3.ONE * 0.91
 	_turntable.add_child(_model)

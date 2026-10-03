@@ -4,10 +4,6 @@ on:
   push:
     branches:
       - main
-    tags:
-      - "v*"
-    paths:
-      - ".release/**"
   workflow_dispatch:
     inputs:
       publish_release:
@@ -21,7 +17,7 @@ permissions:
 
 concurrency:
   group: public-android-release-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 env:
   GODOT_VERSION: "4.6.3"
@@ -34,6 +30,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: Resolve release identity
         id: release
@@ -275,13 +273,35 @@ jobs:
             "build/android/release-manifest.json"
           )
 
+          # The VERSION file is authoritative. Every successful main build
+          # repoints that version tag to the exact commit whose APK was built.
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -f "$RELEASE_TAG" "$GITHUB_SHA"
+          git push origin "refs/tags/$RELEASE_TAG" --force
+
           if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release upload "$RELEASE_TAG" "${ASSETS[@]}"               --repo "$GITHUB_REPOSITORY"               --clobber
-            gh release edit "$RELEASE_TAG"               --repo "$GITHUB_REPOSITORY"               --title "NEXORA: LAST SIGNAL ${LAST_SIGNAL_VERSION}"               --notes-file build/android/RELEASE_NOTES.md
+            gh release upload "$RELEASE_TAG" "${ASSETS[@]}" \
+              --repo "$GITHUB_REPOSITORY" \
+              --clobber
+            gh release edit "$RELEASE_TAG" \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "NEXORA: LAST SIGNAL ${LAST_SIGNAL_VERSION}" \
+              --notes-file build/android/RELEASE_NOTES.md \
+              --prerelease="$IS_PRERELEASE"
           else
             EXTRA_FLAGS=()
             if [[ "$IS_PRERELEASE" == "true" ]]; then
               EXTRA_FLAGS+=(--prerelease)
             fi
-            gh release create "$RELEASE_TAG" "${ASSETS[@]}"               --repo "$GITHUB_REPOSITORY"               --target "$GITHUB_SHA"               --title "NEXORA: LAST SIGNAL ${LAST_SIGNAL_VERSION}"               --notes-file build/android/RELEASE_NOTES.md               "${EXTRA_FLAGS[@]}"
+            gh release create "$RELEASE_TAG" "${ASSETS[@]}" \
+              --repo "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" \
+              --title "NEXORA: LAST SIGNAL ${LAST_SIGNAL_VERSION}" \
+              --notes-file build/android/RELEASE_NOTES.md \
+              "${EXTRA_FLAGS[@]}"
           fi
+
+          gh release view "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --json url,tagName,name,isDraft,isPrerelease,targetCommitish

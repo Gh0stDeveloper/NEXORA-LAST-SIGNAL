@@ -2,6 +2,19 @@
 
 ## 1.0.0rc
 
+### Animation, profile, cosmetics and automatic public distribution
+
+- Integrated the supplied humanoid animation library into the universal operator presentation.
+- Added movement, crouch, jump, landing, pistol, reload, melee, damage, interaction and death animation states.
+- Added female and male presentation variants on the same gameplay character.
+- Added persistent offline profile, avatar selection and gender selection.
+- Added cosmetic inventory with clothing, caps, glasses, shirts, pants and shoes.
+- Added an offline NXC shop and persistent ownership/equipment state.
+- Added differentiated cosmetic appearances for offline AI companions.
+- Added validation coverage for animation clips, wardrobe compatibility and profile starter items.
+- Public Android release builds now run automatically on every push to `main`.
+- The current version tag is repointed to the exact validated commit and public release assets are replaced automatically after a successful build.
+
 ### Lobby, loading and branding release candidate
 
 - Added a guaranteed visible DEADFALL-style loading transition before every match.

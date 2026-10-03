@@ -290,7 +290,7 @@ func _refresh_revive_status() -> void:
 		if life == null or not life.has_method("is_downed") or not bool(life.call("is_downed")):
 			continue
 		var revive_distance := float(life.call("get_revive_distance")) if life.has_method("get_revive_distance") else 2.8
-		var distance := _player.global_position.distance_to(companion.global_position)
+		var distance: float = _player.global_position.distance_to(companion.global_position)
 		if distance <= revive_distance and distance < nearest_distance:
 			nearest_distance = distance
 			nearest = companion

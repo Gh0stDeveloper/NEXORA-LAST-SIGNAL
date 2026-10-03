@@ -8,6 +8,8 @@ const REQUIRED := [
 	"res://src/lobby/Lobby.tscn",
 	"res://src/maps/campaign/OutbreakDistrict.tscn",
 	"res://src/player/Player.tscn",
+	"res://src/customization/CosmeticCatalog.gd",
+	"res://src/assets/UniversalAnimationLibrary.gd",
 	"res://src/zombies/base/Zombie.tscn",
 	"res://src/campaign/data/mission_01_first_signal.tres",
 	"res://src/campaign/data/mission_02_last_broadcast.tres",
@@ -66,6 +68,44 @@ func _run() -> void:
 			_fail("Expanded campaign target missing: %s" % target)
 			return
 	arena.free()
+
+	var animation_library = load("res://src/assets/UniversalAnimationLibrary.gd")
+	if animation_library == null:
+		_fail("Universal supplied animation library failed to load")
+		return
+	for clip_name in [&"Idle_Loop",&"Walk_Loop",&"Sprint_Loop",&"Crouch_Fwd_Loop",&"Jump_Start",&"Jump_Land",&"Pistol_Shoot",&"Pistol_Reload",&"Sword_Attack",&"Death01"]:
+		if not animation_library.has_clip(clip_name):
+			_fail("Required supplied animation clip missing: %s" % String(clip_name))
+			return
+	if String(animation_library.SOURCE_SHA256) != "42f16a4ed61d1e9f5fc7c2526894c5487148ac6ba82b64281ceb7943570f3c37":
+		_fail("Animation library source hash changed unexpectedly")
+		return
+
+	var cosmetic_catalog = load("res://src/customization/CosmeticCatalog.gd")
+	if cosmetic_catalog == null:
+		_fail("Cosmetic catalog failed to load")
+		return
+	for gender in ["female","male"]:
+		var wardrobe: Dictionary = cosmetic_catalog.default_loadout(gender)
+		for category in cosmetic_catalog.CATEGORIES:
+			var item = cosmetic_catalog.get_item(StringName(String(wardrobe.get(category,""))))
+			if item.is_empty() or not cosmetic_catalog.is_compatible(item,gender):
+				_fail("Default wardrobe is invalid for %s / %s" % [gender,category])
+				return
+	if not Progress.owns_cosmetic(cosmetic_catalog.default_profile_icon("female")) or not Progress.owns_cosmetic(cosmetic_catalog.default_profile_icon("male")):
+		_fail("Starter offline profile icons are not owned")
+		return
+
+	var operator_factory = load("res://src/assets/ProceduralCharacterModel.gd")
+	var operator = operator_factory.create_operator(&"operator_01",0,GuestIdentity.appearance_snapshot())
+	if operator == null or not operator.has_method("animate_pose"):
+		_fail("Universal offline operator failed to build")
+		return
+	operator.call("animate_pose",0.0,0.0,&"idle")
+	operator.call("animate_pose",0.2,3.0,&"walk")
+	operator.call("animate_pose",0.4,6.2,&"run")
+	operator.call("animate_pose",0.6,0.0,&"reload")
+	operator.free()
 
 	var boot_scene := load("res://src/main/Boot.tscn") as PackedScene
 	if boot_scene == null:

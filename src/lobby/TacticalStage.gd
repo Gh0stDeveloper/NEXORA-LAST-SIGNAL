@@ -69,7 +69,11 @@ func _on_quality_profile_changed(tier: int, _profile: Dictionary) -> void:
 func set_members(members: Array, capacity: int) -> void:
 	var appearance: Array = []
 	for member in members.slice(0, capacity):
-		appearance.append([String(member.get("guest_id", "")), String(member.get("selected_character", "operator_01"))])
+		appearance.append([
+			String(member.get("guest_id", "")),
+			String(member.get("selected_character", "operator_01")),
+			Dictionary(member.get("appearance", {})),
+		])
 	var signature := JSON.stringify([appearance, capacity])
 	if signature == _signature:
 		return
@@ -82,7 +86,12 @@ func set_members(members: Array, capacity: int) -> void:
 	for i in range(mini(capacity, 4)):
 		var x := (float(i) - float(capacity - 1) * 0.5) * (0.77 if capacity > 2 else 0.82)
 		if i < members.size():
-			var model := Characters.create_operator(StringName(members[i].get("selected_character", "operator_01")), i)
+			var member: Dictionary = members[i]
+			var model := Characters.create_operator(
+				StringName(member.get("selected_character", "operator_01")),
+				i,
+				Dictionary(member.get("appearance", {}))
+			)
 			model.position = Vector3(x, 0, 0.08 if i % 2 else 0)
 			model.rotation.y = PI + _yaw
 			_world.add_child(model)

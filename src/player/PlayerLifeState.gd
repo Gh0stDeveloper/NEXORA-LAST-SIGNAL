@@ -58,6 +58,23 @@ func intercept_lethal_damage(event) -> float:
 	var maximum := float(_health.get("max_health")) if _health != null else 100.0
 	return maxf(1.0, maximum * 0.01)
 
+func set_revive_progress_authoritative(progress: float, reviver_id: int) -> bool:
+	if state != LifeState.DOWNED or not _has_simulation_authority():
+		return false
+	revive_progress = clampf(progress, 0.0, 1.0)
+	reviver_entity_id = reviver_id
+	revive_progress_changed.emit(revive_progress, reviver_entity_id)
+	return true
+
+func clear_revive_progress_authoritative(reviver_id: int = 0) -> void:
+	if state != LifeState.DOWNED or not _has_simulation_authority():
+		return
+	if reviver_id != 0 and reviver_entity_id != 0 and reviver_entity_id != reviver_id:
+		return
+	revive_progress = 0.0
+	reviver_entity_id = 0
+	revive_progress_changed.emit(0.0, 0)
+
 func revive_authoritative(reviver_id: int) -> bool:
 	if state != LifeState.DOWNED or not _has_simulation_authority() or _health == null:
 		return false

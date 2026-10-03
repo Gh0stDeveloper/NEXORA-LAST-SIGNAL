@@ -80,6 +80,19 @@ func _run() -> void:
 	root.add_child(lobby)
 	await process_frame
 	await process_frame
+	if String(ProjectSettings.get_setting("application/config/icon", "")) != "res://assets/branding/last_signal_icon.svg":
+		_fail("Application icon setting is missing")
+		return
+	var preset_text := FileAccess.get_file_as_string("res://export_presets.cfg")
+	for icon_path in [
+		"res://assets/branding/android_main_icon.svg",
+		"res://assets/branding/android_adaptive_foreground.svg",
+		"res://assets/branding/android_adaptive_background.svg",
+		"res://assets/branding/android_adaptive_monochrome.svg",
+	]:
+		if not preset_text.contains(icon_path):
+			_fail("Android launcher icon preset is missing: %s" % icon_path)
+			return
 	if String(ProjectSettings.get_setting("application/config/version", "")) != "1.0.0rc":
 		_fail("Unexpected public version")
 		return

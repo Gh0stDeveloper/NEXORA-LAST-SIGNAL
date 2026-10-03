@@ -87,6 +87,54 @@ func _run()->void:
 		_fail("Campaign checkpoint restore failed")
 		return
 
+	# Squad revive contract: both the player and companions must support a
+	# recoverable DOWNED state when a squad exists.
+	var life:=player.get_node_or_null("LifeState")
+	if life==null:
+		_fail("Player LifeState missing")
+		return
+	life.call("configure_squad_mode",true)
+	var lethal=DamageEventScript.new()
+	lethal.attacker_id=999
+	lethal.victim_id=1
+	lethal.weapon_id=&"ci_lethal"
+	lethal.amount=500.0
+	lethal.resolved_amount=500.0
+	lethal.damage_type=DamageEventScript.DamageType.BULLET
+	lethal.body_part=DamageEventScript.BodyPart.CHEST
+	if not bool(health.call("apply_authoritative_damage",lethal)) or not bool(life.call("is_downed")):
+		_fail("Player did not enter recoverable DOWNED state")
+		return
+	if not bool(life.call("revive_authoritative",101)) or not bool(life.call("is_alive")):
+		_fail("AI-to-player revive contract failed")
+		return
+
+	var CompanionScript:=load("res://src/offline/AICompanion.gd") as Script
+	var companion:=CompanionScript.new() as CharacterBody3D
+	companion.call("configure",101,&"operator_02",player)
+	root.add_child(companion)
+	await process_frame
+	var companion_health:=companion.get_node_or_null("Health")
+	var companion_life:=companion.get_node_or_null("LifeState")
+	if companion_health==null or companion_life==null:
+		_fail("Companion revive components missing")
+		return
+	var companion_lethal=DamageEventScript.new()
+	companion_lethal.attacker_id=999
+	companion_lethal.victim_id=101
+	companion_lethal.weapon_id=&"ci_lethal"
+	companion_lethal.amount=500.0
+	companion_lethal.resolved_amount=500.0
+	companion_lethal.damage_type=DamageEventScript.DamageType.BULLET
+	companion_lethal.body_part=DamageEventScript.BodyPart.CHEST
+	if not bool(companion_health.call("apply_authoritative_damage",companion_lethal)) or not bool(companion_life.call("is_downed")):
+		_fail("Companion did not enter recoverable DOWNED state")
+		return
+	if not bool(companion_life.call("revive_authoritative",1)) or not bool(companion_life.call("is_alive")):
+		_fail("Player-to-companion revive contract failed")
+		return
+	companion.free()
+
 	for mission_path in [
 		"res://src/campaign/data/mission_01_first_signal.tres",
 		"res://src/campaign/data/mission_02_last_broadcast.tres",

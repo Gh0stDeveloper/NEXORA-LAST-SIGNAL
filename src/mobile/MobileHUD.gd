@@ -18,10 +18,12 @@ var _touch_router: Control
 var _player: Node
 var _input_target: Node
 var _health: Node
+var _life_state: Node
 var _weapon: Node
 var _loadout: Node
 var _health_bar: ProgressBar
 var _health_label: Label
+var _revive_status_label: Label
 var _ammo_label: Label
 var _weapon_name_label: Label
 var _weapon_buttons: Dictionary = {}
@@ -48,6 +50,7 @@ func bind_player(player: Node) -> bool:
 		push_warning("MobileHUD could not resolve PlayerInput")
 		return false
 	_health = player.get_node_or_null("Health")
+	_life_state = player.get_node_or_null("LifeState")
 	_loadout = player.get_node_or_null("WeaponLoadout")
 	_weapon = _loadout.call("get_active_weapon") if _loadout != null and _loadout.has_method("get_active_weapon") else player.get_node_or_null("PrimaryWeapon")
 	if _safe_root != null and is_instance_valid(_safe_root):
@@ -198,6 +201,12 @@ func _build_player_status() -> void:
 	_health_bar.add_theme_stylebox_override("fill", _bar_style(Color(0.09, 0.78, 0.55, 1.0), Color(0.35, 1.0, 0.72, 0.94)))
 	vbox.add_child(_health_bar)
 
+	_revive_status_label = Label.new()
+	_revive_status_label.visible = false
+	_revive_status_label.add_theme_font_size_override("font_size", 15)
+	_revive_status_label.add_theme_color_override("font_color", Color(1.0, 0.78, 0.28))
+	vbox.add_child(_revive_status_label)
+
 	_register_hud_element(&"player_status", panel)
 
 func _build_weapon_selector() -> void:
@@ -252,6 +261,7 @@ func _process(delta: float) -> void:
 			var button := _hud_elements.get(action) as BaseButton
 			if button != null:
 				button.set_pressed_no_signal(bool(_input_target.call("is_action_pressed", action)))
+	_refresh_revive_status()
 	if is_instance_valid(_loadout):
 		var state: Dictionary = _loadout.call("get_authoritative_state")
 		for slot in _weapon_buttons:
@@ -259,6 +269,39 @@ func _process(delta: float) -> void:
 			var data: Dictionary = state.get("primary" if slot == 0 else "secondary", {})
 			button.set("ammo_text", "∞" if slot == 2 else str(int(data.get("ammo", 0)) + int(data.get("reserve", 0))))
 			button.queue_redraw()
+
+func _refresh_revive_status() -> void:
+	if _revive_status_label == null or _player == null or not is_instance_valid(_player):
+		return
+	if _life_state != null and _life_state.has_method("is_downed") and bool(_life_state.call("is_downed")):
+		var seconds := int(ceil(float(_life_state.get("bleedout_remaining"))))
+		var progress := int(round(float(_life_state.get("revive_progress")) * 100.0))
+		_revive_status_label.visible = true
+		_revive_status_label.text = "CAÍDO · IA REANIMANDO %d%% · %ds" % [progress, seconds] if progress > 0 else "CAÍDO · ESPERA A TU COMPAÑERO IA · %ds" % seconds
+		return
+
+	var nearest: Node3D
+	var nearest_distance := INF
+	for node in get_tree().get_nodes_in_group("last_signal_companion"):
+		var companion := node as Node3D
+		if companion == null or not is_instance_valid(companion):
+			continue
+		var life := companion.get_node_or_null("LifeState")
+		if life == null or not life.has_method("is_downed") or not bool(life.call("is_downed")):
+			continue
+		var revive_distance := float(life.call("get_revive_distance")) if life.has_method("get_revive_distance") else 2.8
+		var distance := _player.global_position.distance_to(companion.global_position)
+		if distance <= revive_distance and distance < nearest_distance:
+			nearest_distance = distance
+			nearest = companion
+
+	if nearest == null:
+		_revive_status_label.visible = false
+		return
+	var target_life := nearest.get_node_or_null("LifeState")
+	var progress := int(round(float(target_life.get("revive_progress")) * 100.0)) if target_life != null else 0
+	_revive_status_label.visible = true
+	_revive_status_label.text = "MANTÉN INTERACTUAR · REVIVIR %s · %d%%" % [nearest.name.replace("AI_Companion_", "COMPAÑERO "), progress]
 
 func _bind_status_sources() -> void:
 	if _health != null and _health.has_signal("health_changed"):

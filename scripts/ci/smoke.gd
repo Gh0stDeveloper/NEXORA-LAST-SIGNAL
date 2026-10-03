@@ -92,12 +92,21 @@ func _run() -> void:
 			if item.is_empty() or not cosmetic_catalog.is_compatible(item,gender):
 				_fail("Default wardrobe is invalid for %s / %s" % [gender,category])
 				return
-	if not Progress.owns_cosmetic(cosmetic_catalog.default_profile_icon("female")) or not Progress.owns_cosmetic(cosmetic_catalog.default_profile_icon("male")):
+	var progress_store = load("res://src/offline/ProgressStore.gd").new()
+	progress_store.load_progress()
+	if not progress_store.owns_cosmetic(cosmetic_catalog.default_profile_icon("female")) or not progress_store.owns_cosmetic(cosmetic_catalog.default_profile_icon("male")):
 		_fail("Starter offline profile icons are not owned")
+		progress_store.free()
 		return
+	progress_store.free()
 
 	var operator_factory = load("res://src/assets/ProceduralCharacterModel.gd")
-	var operator = operator_factory.create_operator(&"operator_01",0,GuestIdentity.appearance_snapshot())
+	var smoke_appearance := {
+		"gender":"female",
+		"profile_icon":String(cosmetic_catalog.default_profile_icon("female")),
+		"cosmetics":cosmetic_catalog.default_loadout("female"),
+	}
+	var operator = operator_factory.create_operator(&"operator_01",0,smoke_appearance)
 	if operator == null or not operator.has_method("animate_pose"):
 		_fail("Universal offline operator failed to build")
 		return

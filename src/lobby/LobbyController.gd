@@ -14,6 +14,9 @@ const PartyAvatarScript = preload("res://src/lobby/LobbyPartyAvatar.gd")
 const VisualPolishScript = preload("res://src/lobby/LobbyVisualPolish.gd")
 const LoadingScript = preload("res://src/ui/MatchLoadingOverlay.gd")
 const ArenaScene = preload("res://src/maps/campaign/OutbreakDistrict.tscn")
+const ModeCatalog = preload("res://src/modes/ModeCatalog.gd")
+const LOBBY_ART: Texture2D = preload("res://assets/ui/quarantine_hangar.webp")
+const APP_VERSION := "1.0.0rc"
 
 var selected_game_mode := "campaign"
 var selected_mode: PartyMode = PartyMode.SOLO
@@ -29,6 +32,7 @@ var _status_label: Label
 var _game_mode_button: Button
 var _difficulty_button: Button
 var _mode_buttons: Dictionary = {}
+var _operation_mode_buttons: Dictionary = {}
 var _party_labels: Array[Label] = []
 var _party_avatars: Array[Control] = []
 var _party_slots: Array[Control] = []
@@ -79,22 +83,50 @@ func _ready() -> void:
 func _build_background() -> void:
 	var background := ColorRect.new()
 	background.name = "Background"
-	background.color = Color(0.010, 0.035, 0.046, 1.0)
+	background.color = Color(0.006, 0.016, 0.024, 1.0)
 	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(background)
+
+	var hangar := TextureRect.new()
+	hangar.name = "HangarBackdrop"
+	hangar.texture = LOBBY_ART
+	hangar.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	hangar.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	hangar.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	hangar.modulate = Color(0.50, 0.62, 0.68, 0.48)
+	hangar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	background.add_child(hangar)
+
+	var wash := ColorRect.new()
+	wash.name = "LobbyWash"
+	wash.color = Color(0.003, 0.014, 0.022, 0.56)
+	wash.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	wash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	background.add_child(wash)
+
 	var backdrop := Backdrop.new()
 	backdrop.name = "TacticalBackdrop"
 	background.add_child(backdrop)
+
 	var red := ColorRect.new()
 	red.name = "RedAccent"
 	red.anchor_left = 0.64
 	red.anchor_top = 0.0
 	red.anchor_right = 1.0
 	red.anchor_bottom = 1.0
-	red.color = Color(0.92, 0.055, 0.075, 0.14)
+	red.color = Color(0.92, 0.055, 0.075, 0.18)
 	red.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	background.add_child(red)
+
+	var lower_gradient := ColorRect.new()
+	lower_gradient.name = "LowerShade"
+	lower_gradient.anchor_top = 0.74
+	lower_gradient.anchor_right = 1.0
+	lower_gradient.anchor_bottom = 1.0
+	lower_gradient.color = Color(0.0, 0.0, 0.0, 0.30)
+	lower_gradient.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	background.add_child(lower_gradient)
 
 func _build_top_bar() -> void:
 	var card := PanelContainer.new()
@@ -119,6 +151,10 @@ func _build_top_bar() -> void:
 	_status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_status_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	UI.place(_status_label, _safe_root, Rect2(0.25, 0.095, 0.49, 0.04))
+
+	var version_label := UI.label("v%s  ·  ANDROID ARM64" % APP_VERSION, 16, UI.MUTED)
+	version_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	UI.place(version_label, _safe_root, Rect2(0.76, 0.055, 0.20, 0.035))
 
 func _build_stage() -> void:
 	var stage_panel := PanelContainer.new()
@@ -161,6 +197,7 @@ func _build_navigation() -> void:
 	for item in [
 		["OPERADORES", "operator", _open_character_panel],
 		["ARSENAL", "rifle", _open_armory],
+		["MODOS", "play", _open_mode_picker],
 		["DIFICULTAD", "shield", _open_difficulty],
 		["AJUSTES", "settings", _open_settings],
 	]:
@@ -202,40 +239,54 @@ func _build_party_rail() -> void:
 func _build_bottom_bar() -> void:
 	var bar := PanelContainer.new()
 	bar.name = "MatchControls"
-	bar.add_theme_stylebox_override("panel", UI.style())
-	UI.place(bar, _safe_root, Rect2(0.23, 0.80, 0.74, 0.17))
+	bar.add_theme_stylebox_override("panel", UI.style(Color(0.012, 0.032, 0.044, 0.96), Color(UI.CYAN.r, UI.CYAN.g, UI.CYAN.b, 0.34), 18))
+	UI.place(bar, _safe_root, Rect2(0.21, 0.785, 0.76, 0.195))
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 18)
 	bar.add_child(row)
 	var column := UI.column(row, 4)
 	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var selectors := HBoxContainer.new()
-	selectors.add_theme_constant_override("separation", 8)
-	column.add_child(selectors)
-	_game_mode_button = UI.button("ZOMBIS · CAMPAÑA  ›", _open_mode_picker)
-	_game_mode_button.custom_minimum_size.y = 46
-	_game_mode_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_game_mode_button.add_theme_font_size_override("font_size", 22)
-	selectors.add_child(_game_mode_button)
-	_difficulty_button = UI.button("NORMAL", _open_difficulty)
-	_difficulty_button.custom_minimum_size = Vector2(180, 46)
-	_difficulty_button.add_theme_font_size_override("font_size", 20)
-	selectors.add_child(_difficulty_button)
 
-	var modes := HBoxContainer.new()
-	modes.add_theme_constant_override("separation", 10)
-	column.add_child(modes)
-	for mode in [1, 2, 4]:
-		var title := "SOLO" if mode == 1 else ("DÚO IA" if mode == 2 else "ESCUADRA IA")
-		var button := UI.button(title, _set_mode.bind(mode), false, "operator" if mode == 1 else "squad")
-		button.custom_minimum_size.x = 145 if mode != 4 else 190
+	var operation_modes := HBoxContainer.new()
+	operation_modes.name = "GameModeDock"
+	operation_modes.add_theme_constant_override("separation", 8)
+	column.add_child(operation_modes)
+	for definition in ModeCatalog.MODES:
+		var game_mode_id := String(definition.id)
+		var title := "CAMPAÑA" if game_mode_id == "campaign" else ("ASALTO · 10" if game_mode_id == "waves" else "ENDLESS")
+		var button := UI.button(title, _select_game_mode_quick.bind(game_mode_id), false, "play")
+		button.name = "Mode%s" % game_mode_id.capitalize()
 		button.toggle_mode = true
-		modes.add_child(button)
-		_mode_buttons[mode] = button
+		button.custom_minimum_size = Vector2(175, 46)
+		button.tooltip_text = String(definition.description)
+		operation_modes.add_child(button)
+		_operation_mode_buttons[game_mode_id] = button
+
+	_game_mode_button = UI.button("MODO / MISIÓN  ›", _open_mode_picker, false, "play")
+	_game_mode_button.custom_minimum_size = Vector2(190, 46)
+	_game_mode_button.add_theme_font_size_override("font_size", 18)
+	operation_modes.add_child(_game_mode_button)
+
+	_difficulty_button = UI.button("NORMAL", _open_difficulty, false, "shield")
+	_difficulty_button.custom_minimum_size = Vector2(155, 46)
+	_difficulty_button.add_theme_font_size_override("font_size", 18)
+	operation_modes.add_child(_difficulty_button)
+
+	var squad_modes := HBoxContainer.new()
+	squad_modes.name = "SquadModeDock"
+	squad_modes.add_theme_constant_override("separation", 10)
+	column.add_child(squad_modes)
+	for mode in [1, 2, 4]:
+		var party_title := "SOLO" if mode == 1 else ("DÚO IA" if mode == 2 else "ESCUADRA IA")
+		var party_button := UI.button(party_title, _set_mode.bind(mode), false, "operator" if mode == 1 else "squad")
+		party_button.custom_minimum_size.x = 145 if mode != 4 else 190
+		party_button.toggle_mode = true
+		squad_modes.add_child(party_button)
+		_mode_buttons[mode] = party_button
 
 	_start_button = UI.button("INICIAR SOLO", _on_start_pressed, true, "play")
-	_start_button.custom_minimum_size.x = 290
-	_start_button.add_theme_font_size_override("font_size", 30)
+	_start_button.custom_minimum_size.x = 300
+	_start_button.add_theme_font_size_override("font_size", 28)
 	row.add_child(_start_button)
 
 func _new_overlay(title: String) -> VBoxContainer:
@@ -505,7 +556,7 @@ func _select_mission(value: StringName) -> void:
 	_refresh_mode()
 
 func _select_game_mode(value: String) -> void:
-	var definition := preload("res://src/modes/ModeCatalog.gd").find(value)
+	var definition := ModeCatalog.find(value)
 	if definition.is_empty():
 		return
 	selected_game_mode = value
@@ -513,6 +564,16 @@ func _select_game_mode(value: String) -> void:
 		selected_mission = &"mission_01_first_signal"
 	_close_overlay()
 	_refresh_mode()
+
+func _select_game_mode_quick(value: String) -> void:
+	var definition := ModeCatalog.find(value)
+	if definition.is_empty():
+		return
+	selected_game_mode = value
+	if selected_game_mode != "campaign":
+		selected_mission = &"mission_01_first_signal"
+	_refresh_mode()
+	_status_label.text = "%s · %s" % [String(definition.title), selected_difficulty.to_upper()]
 
 func _set_mode(mode: int) -> void:
 	if mode not in [1,2,4]:
@@ -526,11 +587,16 @@ func _refresh_mode() -> void:
 		button.set_pressed_no_signal(int(key) == int(selected_mode))
 		UI.skin_button(button, button.button_pressed)
 
+	for game_mode_key in _operation_mode_buttons:
+		var operation_button: Button = _operation_mode_buttons[game_mode_key]
+		operation_button.set_pressed_no_signal(String(game_mode_key) == selected_game_mode)
+		UI.skin_button(operation_button, operation_button.button_pressed)
+
 	var title := "SOLO" if selected_mode == PartyMode.SOLO else ("DÚO IA" if selected_mode == PartyMode.DUO else "ESCUADRA IA")
 	_party_title.text = "TU EQUIPO  /  %s" % title
 	_start_button.text = "INICIAR %s" % title
 	_status_label.text = "PREPARADO · SIN CONEXIÓN REQUERIDA"
-	_game_mode_button.text = "%s  ›" % preload("res://src/modes/ModeCatalog.gd").find(selected_game_mode).get("title","CAMPAÑA")
+	_game_mode_button.text = "MODO / MISIÓN  ›"
 	_difficulty_button.text = selected_difficulty.to_upper()
 	_briefing_tag.text = "OFFLINE"
 	var campaign_title: String = String({
@@ -617,18 +683,25 @@ func _on_start_pressed() -> void:
 
 func _start_operation(config: Dictionary) -> void:
 	_close_overlay()
+	_start_button.disabled = true
 	_loading = LoadingScript.new()
 	_loading.name = "MatchLoadingOverlay"
 	add_child(_loading)
-	_loading.begin("")
-	_loading.set_stage("Preparando ciudad y navegación local…",0.34)
+	_loading.begin(config)
 	await get_tree().process_frame
-	_loading.set_stage("Inicializando infectados, loot y compañeros IA…",0.66)
+
+	_loading.set_stage("Preparando ciudad, iluminación y navegación local…", 0.26)
+	await get_tree().create_timer(0.28).timeout
+
 	Game.start_local_session()
+	_loading.set_stage("Inicializando infectados, loot y compañeros IA…", 0.52)
 	_arena = ArenaScene.instantiate() as Node3D
 	if _arena == null:
 		_loading.show_error("No se pudo crear la operación local.")
+		_start_button.disabled = false
 		return
+
+	_arena.process_mode = Node.PROCESS_MODE_DISABLED
 	_arena.set("game_mode",String(config.get("mode","campaign")))
 	_arena.set("mission_id",StringName(config.get("mission_id",&"mission_01_first_signal")))
 	_arena.set("difficulty_id",String(config.get("difficulty","normal")))
@@ -638,9 +711,18 @@ func _start_operation(config: Dictionary) -> void:
 	_arena.set("secondary_weapon_id",StringName(config.get("secondary_weapon_id",&"nxr_pistol_01")))
 	_arena.connect("return_to_lobby",Callable(self,"_on_return_to_lobby"))
 	add_child(_arena)
-	_loading.complete()
+
 	await get_tree().process_frame
+	_loading.set_stage("Sincronizando HUD, armamento y estado de misión…", 0.78)
+	await get_tree().create_timer(0.42).timeout
+	_loading.set_stage("Zona lista. Confirmando inserción táctica…", 0.94)
+	await get_tree().create_timer(0.38).timeout
+	_loading.complete()
+	await get_tree().create_timer(0.32).timeout
+
 	visible = false
+	_arena.process_mode = Node.PROCESS_MODE_INHERIT
+	_start_button.disabled = false
 	if is_instance_valid(_loading):
 		_loading.queue_free()
 		_loading = null

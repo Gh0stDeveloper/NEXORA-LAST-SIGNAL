@@ -20,6 +20,7 @@ const REQUIRED := [
 	"res://src/weapons/data/nxr_pistol_01.tres",
 	"res://src/weapons/data/nxr_pistol_02.tres",
 	"res://assets/ui/quarantine_hangar.webp",
+	"res://assets/branding/last_signal_icon.svg",
 	"res://assets/audio/last_signal.ogg",
 	"res://assets/audio/quarantine_wind.ogg",
 ]
@@ -79,6 +80,12 @@ func _run() -> void:
 	root.add_child(lobby)
 	await process_frame
 	await process_frame
+	if String(ProjectSettings.get_setting("application/config/version", "")) != "1.0.0rc":
+		_fail("Unexpected public version")
+		return
+	if lobby.find_child("GameModeDock", true, false) == null:
+		_fail("Persistent game-mode dock is missing from lobby")
+		return
 	for path in ["SafeArea/OperatorStage","SafeArea/PartyRail","SafeArea/MatchControls"]:
 		if lobby.get_node_or_null(path) == null:
 			_fail("DEADFALL lobby structure missing: %s" % path)
